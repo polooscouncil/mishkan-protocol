@@ -2,6 +2,8 @@ import { Link } from "@tanstack/react-router";
 import { CHAINS } from "@/lib/mishkan-data";
 import { shortAddress, useWallet } from "@/lib/wallet";
 import { useActiveCouncil } from "@/lib/active-council";
+import { ThemeToggle } from "@/components/theme-toggle";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -199,8 +201,10 @@ export function SiteHeader() {
         <div className="ml-auto flex items-center gap-4">
           <CouncilIndicator />
           <NetworkIndicator />
+          <ThemeToggle />
           <WalletButton />
         </div>
+
       </div>
     </header>
   );
