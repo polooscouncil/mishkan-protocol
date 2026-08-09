@@ -190,11 +190,12 @@ function FeedSidebar() {
   const recent = posts.slice(0, 5);
 
   return (
-    <aside className="mt-12 lg:mt-0">
+    <aside className="mt-12 lg:sticky lg:top-28 lg:mt-0 lg:self-start">
       <div className="border-b border-rule pb-4">
         <p className="label-caps text-muted-foreground">Community</p>
         <h2 className="mt-2 text-xl">Feed</h2>
       </div>
+
 
       <div className="divide-y divide-rule">
         {isLoading ? (
