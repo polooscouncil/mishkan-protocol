@@ -85,7 +85,7 @@ function Hero() {
   const [open, setOpen] = useState<string | null>(null);
 
   return (
-    <section className="hero-wash -mx-6 border-b border-rule px-6 pb-14 pt-10">
+    <section className="hero-wash -mx-6 border-b border-rule px-6 pb-14 pt-10 lg:mx-0">
       <p className="label-caps text-muted-foreground">Public record · Open deliberation</p>
       <h1 className="mt-5 max-w-3xl text-5xl leading-[1.05] md:text-6xl">
         Where communities deliberate.
