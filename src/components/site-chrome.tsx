@@ -201,8 +201,10 @@ export function SiteHeader() {
         <div className="ml-auto flex items-center gap-4">
           <CouncilIndicator />
           <NetworkIndicator />
+          <ThemeToggle />
           <WalletButton />
         </div>
+
       </div>
     </header>
   );
