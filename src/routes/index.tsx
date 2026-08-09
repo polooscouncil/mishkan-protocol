@@ -247,70 +247,73 @@ function Docket() {
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-14">
-      <Hero />
-      <StatsBar />
-      <Primer />
+      <div className="grid items-start gap-x-12 lg:grid-cols-[minmax(0,1fr)_20rem]">
+        <div className="min-w-0">
+          <Hero />
+          <StatsBar />
+          <Primer />
 
-      <div className="grid gap-x-12 pt-12 lg:grid-cols-[minmax(0,1fr)_20rem]">
-      <section>
-        <div className="flex flex-wrap items-end justify-between gap-4 border-b border-rule pb-4">
-          <div>
-            <p className="label-caps text-muted-foreground">Open items</p>
-            <h2 className="mt-2 text-2xl md:text-3xl">
-              The Docket
-              {council ? (
-                <span className="text-muted-foreground"> · {council.community_name}</span>
-              ) : null}
-            </h2>
-          </div>
-          <Link
-            to="/submit"
-            className="border border-foreground bg-foreground px-4 py-2 font-mono text-xs uppercase tracking-[0.14em] text-background transition-opacity hover:opacity-85"
-          >
-            + Submit
-          </Link>
-        </div>
+          <section className="pt-12">
+            <div className="flex flex-wrap items-end justify-between gap-4 border-b border-rule pb-4">
+              <div>
+                <p className="label-caps text-muted-foreground">Open items</p>
+                <h2 className="mt-2 text-2xl md:text-3xl">
+                  The Docket
+                  {council ? (
+                    <span className="text-muted-foreground"> · {council.community_name}</span>
+                  ) : null}
+                </h2>
+              </div>
+              <Link
+                to="/submit"
+                className="border border-foreground bg-foreground px-4 py-2 font-mono text-xs uppercase tracking-[0.14em] text-background transition-opacity hover:opacity-85"
+              >
+                + Submit
+              </Link>
+            </div>
 
-        <div className="flex flex-wrap gap-x-6 gap-y-2 border-b border-rule py-4">
-          {FILTERS.map((f) => (
-            <button
-              key={f.key}
-              type="button"
-              onClick={() => setFilter(f.key)}
-              className={`border-b py-0.5 font-mono text-[11px] uppercase tracking-[0.12em] transition-colors ${
-                filter === f.key
-                  ? "border-foreground text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {f.label}
-              <span className="ml-2 text-muted-foreground">
-                {f.key === "all"
-                  ? scoped.length
-                  : scoped.filter((i) => i.type === f.key).length}
-              </span>
-            </button>
-          ))}
-        </div>
+            <div className="flex flex-wrap gap-x-6 gap-y-2 border-b border-rule py-4">
+              {FILTERS.map((f) => (
+                <button
+                  key={f.key}
+                  type="button"
+                  onClick={() => setFilter(f.key)}
+                  className={`border-b py-0.5 font-mono text-[11px] uppercase tracking-[0.12em] transition-colors ${
+                    filter === f.key
+                      ? "border-foreground text-foreground"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {f.label}
+                  <span className="ml-2 text-muted-foreground">
+                    {f.key === "all"
+                      ? scoped.length
+                      : scoped.filter((i) => i.type === f.key).length}
+                  </span>
+                </button>
+              ))}
+            </div>
 
-        <p className="border-b border-rule py-4 text-xs leading-relaxed text-muted-foreground">
-          Community discussion is not moderated in real time and does not represent official
-          Mishkan Protocol positions. Report inappropriate content using the flag button.
-        </p>
-
-        <div>
-          {visible.length === 0 ? (
-            <p className="py-12 text-sm text-muted-foreground">
-              No open items match this view. File one from the Submit page.
+            <p className="border-b border-rule py-4 text-xs leading-relaxed text-muted-foreground">
+              Community discussion is not moderated in real time and does not represent official
+              Mishkan Protocol positions. Report inappropriate content using the flag button.
             </p>
-          ) : (
-            visible.map((item) => <DocketRow key={item.id} item={item} votable />)
-          )}
-        </div>
-      </section>
 
-      <FeedSidebar />
+            <div>
+              {visible.length === 0 ? (
+                <p className="py-12 text-sm text-muted-foreground">
+                  No open items match this view. File one from the Submit page.
+                </p>
+              ) : (
+                visible.map((item) => <DocketRow key={item.id} item={item} votable />)
+              )}
+            </div>
+          </section>
+        </div>
+
+        <FeedSidebar />
       </div>
     </div>
   );
 }
+
