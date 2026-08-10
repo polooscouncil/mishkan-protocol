@@ -143,7 +143,7 @@ export type ProtocolStats = {
 export const statsQuery = queryOptions({
   queryKey: ["protocol-stats"],
   queryFn: async (): Promise<ProtocolStats> => {
-    const [voteRows, resolved, petitions] = await Promise.all([
+    const [voteRows, resolved, petitionRows] = await Promise.all([
       supabase.from("votes").select("voter_wallet"),
       supabase.from("docket_items").select("id", { count: "exact", head: true }).eq("status", "resolved"),
       supabase.from("petitions").select("id", { count: "exact", head: true }),
@@ -152,12 +152,16 @@ export const statsQuery = queryOptions({
     const wallets = new Set(
       (voteRows.data ?? []).map((v) => (v.voter_wallet ?? "").toLowerCase()),
     );
+    // The Petitions page lists the protocol register; keep the headline count
+    // consistent with what a reader can actually open.
+    const { PETITIONS } = await import("./mishkan-data");
     return {
       members: wallets.size,
       votes: voteRows.data?.length ?? 0,
       resolved: resolved.count ?? 0,
-      petitions: petitions.count ?? 0,
+      petitions: Math.max(PETITIONS.length, petitionRows.count ?? 0),
     };
+
   },
 });
 
