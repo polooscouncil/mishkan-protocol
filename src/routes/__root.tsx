@@ -86,14 +86,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: "description",
         content:
-          "Open community polls, dispute cases, and governance proposals currently before the Council.",
+          "Mishkan Protocol is a public record for community governance: one holder, one vote, with every deliberation kept permanently readable.",
       },
       { property: "og:type", content: "website" },
+      { property: "og:site_name", content: "Mishkan Protocol" },
       { name: "twitter:card", content: "summary_large_image" },
       { property: "og:title", content: "Mishkan Protocol" },
       { name: "twitter:title", content: "Mishkan Protocol" },
-      { property: "og:description", content: "Open community polls, dispute cases, and governance proposals currently before the Council." },
-      { name: "twitter:description", content: "Open community polls, dispute cases, and governance proposals currently before the Council." },
+      { property: "og:description", content: "A public record for community governance — one holder, one vote, kept permanently readable." },
+      { name: "twitter:description", content: "A public record for community governance — one holder, one vote, kept permanently readable." },
+
       { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/d7e765f8-0025-48c2-bc0a-c3f802e25406/id-preview-31580f32--2a3b6d73-e461-40a5-9077-14ffbd2d9a45.lovable.app-1785756361672.png" },
       { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/d7e765f8-0025-48c2-bc0a-c3f802e25406/id-preview-31580f32--2a3b6d73-e461-40a5-9077-14ffbd2d9a45.lovable.app-1785756361672.png" },
     ],
