@@ -12,3 +12,5 @@ Allow: /
 
 User-agent: *
 Allow: /
+
+Sitemap: https://mishkanprotocol2.lovable.app/sitemap.xml
