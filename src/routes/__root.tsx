@@ -109,7 +109,31 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { rel: "icon", href: "/favicon.png", type: "image/png" },
     ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          name: "Mishkan Protocol",
+          url: "https://mishkanprotocol2.lovable.app",
+          logo: "https://mishkanprotocol2.lovable.app/favicon.png",
+          description:
+            "A public record for community governance — one holder, one vote, kept permanently readable.",
+        }),
+      },
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          name: "Mishkan Protocol",
+          url: "https://mishkanprotocol2.lovable.app",
+        }),
+      },
+    ],
   }),
+
   shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
