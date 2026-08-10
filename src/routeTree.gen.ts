@@ -14,6 +14,7 @@ import { Route as ArchiveRouteImport } from './routes/archive'
 import { Route as FeedRouteImport } from './routes/feed'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as StatusRouteImport } from './routes/status'
 import { Route as SubmitRouteImport } from './routes/submit'
 import { Route as TermsRouteImport } from './routes/terms'
@@ -44,6 +45,11 @@ const PrivacyRoute = PrivacyRouteImport.update({
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StatusRoute = StatusRouteImport.update({
@@ -83,6 +89,7 @@ export interface FileRoutesByFullPath {
   '/feed': typeof FeedRoute
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/status': typeof StatusRoute
   '/submit': typeof SubmitRoute
   '/terms': typeof TermsRoute
@@ -96,6 +103,7 @@ export interface FileRoutesByTo {
   '/feed': typeof FeedRoute
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/status': typeof StatusRoute
   '/submit': typeof SubmitRoute
   '/terms': typeof TermsRoute
@@ -110,6 +118,7 @@ export interface FileRoutesById {
   '/feed': typeof FeedRoute
   '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/status': typeof StatusRoute
   '/submit': typeof SubmitRoute
   '/terms': typeof TermsRoute
@@ -125,6 +134,7 @@ export interface FileRouteTypes {
     | '/feed'
     | '/privacy'
     | '/profile'
+    | '/sitemap.xml'
     | '/status'
     | '/submit'
     | '/terms'
@@ -138,6 +148,7 @@ export interface FileRouteTypes {
     | '/feed'
     | '/privacy'
     | '/profile'
+    | '/sitemap.xml'
     | '/status'
     | '/submit'
     | '/terms'
@@ -151,6 +162,7 @@ export interface FileRouteTypes {
     | '/feed'
     | '/privacy'
     | '/profile'
+    | '/sitemap.xml'
     | '/status'
     | '/submit'
     | '/terms'
@@ -165,6 +177,7 @@ export interface RootRouteChildren {
   FeedRoute: typeof FeedRoute
   PrivacyRoute: typeof PrivacyRoute
   ProfileRoute: typeof ProfileRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   StatusRoute: typeof StatusRoute
   SubmitRoute: typeof SubmitRoute
   TermsRoute: typeof TermsRoute
@@ -208,6 +221,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/status': {
@@ -261,6 +281,7 @@ const rootRouteChildren: RootRouteChildren = {
   FeedRoute: FeedRoute,
   PrivacyRoute: PrivacyRoute,
   ProfileRoute: ProfileRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   StatusRoute: StatusRoute,
   SubmitRoute: SubmitRoute,
   TermsRoute: TermsRoute,

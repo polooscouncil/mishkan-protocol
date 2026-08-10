@@ -32,10 +32,30 @@ export const Route = createFileRoute("/petitions/$petitionId")({
         { property: "og:title", content: title },
         { property: "og:description", content: description },
         { property: "og:type", content: "article" },
+        { property: "og:url", content: `https://mishkanprotocol2.lovable.app/petitions/${petition.id}` },
         { name: "twitter:card", content: "summary" },
+      ],
+      links: [
+        { rel: "canonical", href: `https://mishkanprotocol2.lovable.app/petitions/${petition.id}` },
+      ],
+      scripts: [
+        {
+          type: "application/ld+json",
+          children: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Article",
+            headline: petition.title,
+            datePublished: petition.filed,
+            articleBody: petition.body.join("\n\n"),
+            about: petition.community,
+            publisher: { "@type": "Organization", name: "Mishkan Protocol" },
+            url: `https://mishkanprotocol2.lovable.app/petitions/${petition.id}`,
+          }),
+        },
       ],
     };
   },
+
   component: PetitionDetail,
   notFoundComponent: () => (
     <div className="mx-auto max-w-3xl px-6 py-16 text-sm text-muted-foreground">
