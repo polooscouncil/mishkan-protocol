@@ -20,17 +20,34 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Open community polls, dispute cases, and governance proposals currently before the Council.",
+          "Read the Docket: open community polls, dispute cases, and governance proposals currently before the Council, with live tallies.",
       },
       { property: "og:title", content: "The Docket — Mishkan Protocol" },
+      { property: "og:url", content: "https://mishkanprotocol2.lovable.app/" },
       {
         property: "og:description",
         content:
-          "Open community polls, dispute cases, and governance proposals currently before the Council.",
+          "Open polls, disputes, and proposals under active deliberation right now — follow each tally as members sign their votes.",
+      },
+    ],
+    links: [{ rel: "canonical", href: "https://mishkanprotocol2.lovable.app/" }],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: [...FAQ, ...PRIMER].map((item) => ({
+            "@type": "Question",
+            name: item.q,
+            acceptedAnswer: { "@type": "Answer", text: item.a },
+          })),
+        }),
       },
     ],
   }),
   loader: ({ context }) => context.queryClient.ensureQueryData(docketQuery),
+
   component: Docket,
   errorComponent: () => (
     <div className="mx-auto max-w-6xl px-6 py-16 text-sm text-muted-foreground">
