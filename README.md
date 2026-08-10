@@ -1,64 +1,92 @@
 # Mishkan Protocol
 
-Build "Mishkan Protocol" — an open-source, multichain community governance app.
+Open-source, multichain infrastructure for community governance. Any community
+brings its own token and deploys its own Council — polls, disputes, petitions,
+and proposals, verified by token balance, decided one holder, one vote.
 
-It is a generalized, chain-agnostic version of token-gated community deliberation:
+**Live app:** https://mishkanprotocol2.lovable.app
+**License:** MIT
+**Status:** Active MVP development
 
-any community, on any supported chain, brings their own token and gets a Council.
+---
 
-Pages:
+## Why this is a public good
 
-- Docket (home): feed of open items — Community Poll, Dispute Case, Governance Proposal
+- **No native token.** Mishkan Protocol does not launch, sell, or hold any
+  token. There is no sale, no emissions schedule, and no treasury that could
+  benefit from the outcome of a vote.
+- **No admin custody.** The protocol never holds funds or admin keys for a
+  deployed Council. Each instance is scoped to one community's own token.
+- **Free, forever, on the core path.** Reading the docket and archive,
+  submitting items, and voting carry no fee. Monetization (if any, in the
+  future) will live entirely outside core governance — see Roadmap.
+- **Self-hostable and forkable.** Any community, on any supported chain, can
+  run their own instance without asking permission.
 
-- Submit: form to open a new poll/dispute/proposal
+## What it does
 
-- Archive: resolved items, permanent public record
+| Feature | Description |
+|---|---|
+| **Docket** | Open feed of Community Polls, Dispute Cases, and Governance Proposals |
+| **Submit** | Any wallet holding the community's token can open a new item |
+| **Vote** | One holder, one vote — balance verifies eligibility, not voting weight |
+| **Archive** | Permanent, append-only record of resolved items |
+| **Petitions** | Routed proposals with a tracked resolution status |
+| **Feed** | General community discussion, separate from formal docket items |
 
-- Petitions: routed proposals with a resolution status
+## Supported chains
 
-- Vision: project mission — open-source public good, multichain by design,
+Support means balance reads, snapshotting, and record anchoring for a given
+chain. Adding a new EVM chain requires configuration only — no new code.
+Non-EVM chains require a dedicated adapter.
 
-  no native token, community brings their own
+**Live:**
+- BNB Chain (testnet)
+- Ethereum (Sepolia)
 
-- Profile: connected wallet, voting history
+**Config-ready (EVM-compatible, same adapter):**
+- Base, Arbitrum, Polygon, Optimism, Celo
 
-Design direction: serious, civic, minimal — think a public record/ledger, not a
+**Planned (requires new adapter):**
+- Stellar
 
-crypto trading app. Avoid gimmicky web3 visual clichés. Typography-forward,
+## Architecture
 
-generous whitespace, muted palette. This should look like infrastructure,
-
-not a token launch.
-
-Header shows: "Connect wallet" button, current network indicator (which chain
-
-the connected wallet is on), and standard nav (Docket / Submit / Archive /
-
-Petitions / Vision / Profile).
-
-Do not implement wallet connection logic yet — just the UI shell with a
-
-"Connect wallet" button that's wired up in the next step.
-
-This project was built with [Lovable](https://lovable.dev).
-
-**Live app**: https://mishkanprotocol.lovable.app
-
-## Build with Lovable
-
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/2a3b6d73-e461-40a5-9077-14ffbd2d9a45).
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
-
-## Development
-
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
-
-```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
 ```
+/chains
+  index.ts   -> ChainAdapter interface (connectWallet, getBalance, signVote, isEligible)
+  evm.ts     -> EVM implementation (BNB Chain, Ethereum, and any EVM-compatible chain)
+  stellar.ts -> Stellar implementation (planned)
+```
+
+- **Frontend:** React (via Lovable)
+- **Backend:** Supabase — stores docket items, votes, petitions, and feed
+  posts; on-chain wallet balance is checked live at vote time, not cached
+  as a source of truth for eligibility
+- **Multichain:** a single `ChainAdapter` interface — see `/chains/index.ts` —
+  that every chain implementation satisfies, so the app never needs to know
+  which chain it's talking to
+
+## Roadmap
+
+- [x] Core docket/vote/archive cycle (MVP)
+- [x] EVM support (BNB Chain, Ethereum)
+- [ ] Stellar adapter
+- [ ] Multi-instance hosting (one deployment serving many communities via config)
+- [ ] **Futarchy** — ratifying decisions through conditional prediction markets
+      ("vote on values, bet on beliefs") as an advisory signal alongside
+      simple polling. Exploratory; not yet implemented.
+
+## What we will not build
+
+No token sale. No points programme. No trading surface, price chart, or
+speculative incentive layered onto a deliberative body. Governance that pays
+to participate stops being governance.
+
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md).
+
+## License
+
+MIT — see [LICENSE](./LICENSE).
