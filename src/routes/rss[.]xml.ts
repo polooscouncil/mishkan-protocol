@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
-import { BASE_URL, collectFeedEntries, escapeXml } from "@/lib/feed.server";
+import { BASE_URL, collectFeedEntries, escapeXml } from "@/lib/feed-source";
 
 export const Route = createFileRoute("/rss.xml")({
   server: {
