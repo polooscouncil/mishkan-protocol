@@ -270,6 +270,7 @@ function Docket() {
           <Hero />
           <StatsBar />
           <Primer />
+          <FeedDiscovery />
 
           <section className="pt-12">
             <div className="flex flex-wrap items-end justify-between gap-4 border-b border-rule pb-4">
