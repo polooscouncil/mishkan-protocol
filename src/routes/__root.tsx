@@ -10,11 +10,11 @@ import {
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
-import { reportLovableError } from "../lib/lovable-error-reporting";
+import { reportLovableError } from "@/lib/lovable-error-reporting";
 import { SiteHeader, SiteFooter } from "../components/site-chrome";
 import { THEME_INIT_SCRIPT } from "../components/theme-toggle";
-import { WalletProvider } from "../lib/wallet";
-import { ActiveCouncilProvider } from "../lib/active-council";
+import { WalletProvider } from "@/lib/wallet";
+import { ActiveCouncilProvider } from "@/lib/active-council";
 
 
 function NotFoundComponent() {
