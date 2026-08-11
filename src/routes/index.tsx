@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useSuspenseQuery, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { DocketRow } from "@/components/docket-row";
+import { FeedDiscovery } from "@/components/feed-links";
 import { docketQuery, socialFeedQuery, statsQuery } from "@/lib/db";
 import { KIND_LABEL, formatNumber, type ItemKind } from "@/lib/mishkan-data";
 import { useWallet } from "@/lib/wallet";
