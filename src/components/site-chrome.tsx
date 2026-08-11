@@ -3,6 +3,7 @@ import { CHAINS } from "@/lib/mishkan-data";
 import { shortAddress, useWallet } from "@/lib/wallet";
 import { useActiveCouncil } from "@/lib/active-council";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { FeedMenu } from "@/components/feed-links";
 
 import {
   DropdownMenu,
