@@ -108,6 +108,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: "https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,300;6..72,400;6..72,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap",
       },
       { rel: "icon", href: "/favicon.png", type: "image/png" },
+      {
+        rel: "alternate",
+        type: "application/rss+xml",
+        title: "Mishkan Protocol — Docket & Petitions (RSS)",
+        href: "/rss.xml",
+      },
+      {
+        rel: "alternate",
+        type: "application/atom+xml",
+        title: "Mishkan Protocol — Docket & Petitions (Atom)",
+        href: "/atom.xml",
+      },
     ],
     scripts: [
       {
