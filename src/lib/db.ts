@@ -7,9 +7,12 @@ export type Council = {
   id: string;
   community_name: string;
   chain_id: number;
-  token_address: string;
+  token_address: string | null;
   min_balance: number;
   token_symbol: string | null;
+  chain_family: "evm" | "cardano";
+  policy_id: string | null;
+  message_tag: string | null;
 };
 
 export type Choice = "for" | "against" | "abstain";
@@ -51,7 +54,7 @@ async function loadItems(status: "open" | "resolved"): Promise<DocketItem[]> {
   const { data, error } = await supabase
     .from("docket_items")
     .select(
-      "id, council_id, type, title, body, status, resolution, created_by_wallet, created_at, councils(id, community_name, chain_id, token_address, min_balance, token_symbol), votes(id, docket_item_id, voter_wallet, choice, chain_id, created_at)",
+      "id, council_id, type, title, body, status, resolution, created_by_wallet, created_at, councils(id, community_name, chain_id, token_address, min_balance, token_symbol, chain_family, policy_id, message_tag), votes(id, docket_item_id, voter_wallet, choice, chain_id, created_at)",
     )
     .eq("status", status)
     .order("created_at", { ascending: false });
@@ -86,7 +89,7 @@ export const councilsQuery = queryOptions({
   queryFn: async (): Promise<Council[]> => {
     const { data, error } = await supabase
       .from("councils")
-      .select("id, community_name, chain_id, token_address, min_balance, token_symbol")
+      .select("id, community_name, chain_id, token_address, min_balance, token_symbol, chain_family, policy_id, message_tag")
       .order("community_name");
     if (error) throw error;
     return (data ?? []) as Council[];

@@ -1,6 +1,8 @@
 export type ItemKind = "poll" | "dispute" | "proposal";
 export type ItemStatus = "open" | "passed" | "failed" | "routed" | "withdrawn";
 
+export type ChainFamilyId = "evm" | "cardano";
+
 export type Chain = {
   id: string;
   name: string;
@@ -9,23 +11,30 @@ export type Chain = {
   /** CSS custom property holding the chain's scanning accent. */
   accent: string;
   live: boolean;
+  /** EVM chains share one adapter; other families need a dedicated one. */
+  family: ChainFamilyId;
 };
 
 export const CHAINS: Chain[] = [
-  { id: "bnb-testnet", name: "BNB Chain Testnet", short: "tBNB", chainId: 97, accent: "var(--chain-bnb)", live: true },
-  { id: "sepolia", name: "Ethereum Sepolia", short: "SEP", chainId: 11155111, accent: "var(--chain-ethereum)", live: true },
-  { id: "ethereum", name: "Ethereum", short: "ETH", chainId: 1, accent: "var(--chain-ethereum)", live: true },
-  { id: "base", name: "Base", short: "BASE", chainId: 8453, accent: "var(--chain-base)", live: true },
-  { id: "arbitrum", name: "Arbitrum One", short: "ARB", chainId: 42161, accent: "var(--chain-arbitrum)", live: true },
-  { id: "polygon", name: "Polygon", short: "POL", chainId: 137, accent: "var(--chain-polygon)", live: true },
-  { id: "optimism", name: "OP Mainnet", short: "OP", chainId: 10, accent: "var(--chain-optimism)", live: true },
-  { id: "celo", name: "Celo", short: "CELO", chainId: 42220, accent: "var(--chain-celo)", live: true },
+  { id: "bnb-testnet", name: "BNB Chain Testnet", short: "tBNB", chainId: 97, accent: "var(--chain-bnb)", live: true, family: "evm" },
+  { id: "sepolia", name: "Ethereum Sepolia", short: "SEP", chainId: 11155111, accent: "var(--chain-ethereum)", live: true, family: "evm" },
+  { id: "ethereum", name: "Ethereum", short: "ETH", chainId: 1, accent: "var(--chain-ethereum)", live: true, family: "evm" },
+  { id: "base", name: "Base", short: "BASE", chainId: 8453, accent: "var(--chain-base)", live: true, family: "evm" },
+  { id: "arbitrum", name: "Arbitrum One", short: "ARB", chainId: 42161, accent: "var(--chain-arbitrum)", live: true, family: "evm" },
+  { id: "polygon", name: "Polygon", short: "POL", chainId: 137, accent: "var(--chain-polygon)", live: true, family: "evm" },
+  { id: "optimism", name: "OP Mainnet", short: "OP", chainId: 10, accent: "var(--chain-optimism)", live: true, family: "evm" },
+  { id: "celo", name: "Celo", short: "CELO", chainId: 42220, accent: "var(--chain-celo)", live: true, family: "evm" },
+  { id: "cardano", name: "Cardano", short: "ADA", chainId: 1815, accent: "var(--chain-cardano)", live: true, family: "cardano" },
 ];
+
+export const EVM_CHAIN_LIST = CHAINS.filter((c) => c.family === "evm");
+export const NON_EVM_CHAIN_LIST = CHAINS.filter((c) => c.family !== "evm");
 
 /** Non-EVM chains need a dedicated adapter — listed, but not live. */
 export const UPCOMING_CHAINS = [
   { id: "stellar", name: "Stellar", short: "XLM", accent: "var(--chain-stellar)" },
 ] as const;
+
 
 export function chainAccent(id: string | null | undefined) {
   return CHAINS.find((c) => c.id === id)?.accent ?? "var(--color-muted-foreground)";
