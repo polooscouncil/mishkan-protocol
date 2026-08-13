@@ -14,32 +14,79 @@ export type Database = {
   }
   public: {
     Tables: {
+      council_claims: {
+        Row: {
+          council_id: string
+          created_at: string
+          id: string
+          status: string
+          tx_hash: string | null
+          updated_at: string
+          wallet: string
+        }
+        Insert: {
+          council_id: string
+          created_at?: string
+          id?: string
+          status?: string
+          tx_hash?: string | null
+          updated_at?: string
+          wallet: string
+        }
+        Update: {
+          council_id?: string
+          created_at?: string
+          id?: string
+          status?: string
+          tx_hash?: string | null
+          updated_at?: string
+          wallet?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "council_claims_council_id_fkey"
+            columns: ["council_id"]
+            isOneToOne: false
+            referencedRelation: "councils"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       councils: {
         Row: {
+          chain_family: string
           chain_id: number
           community_name: string
           created_at: string
           id: string
+          message_tag: string | null
           min_balance: number
-          token_address: string
+          policy_id: string | null
+          token_address: string | null
           token_symbol: string | null
         }
         Insert: {
+          chain_family?: string
           chain_id: number
           community_name: string
           created_at?: string
           id?: string
+          message_tag?: string | null
           min_balance?: number
-          token_address: string
+          policy_id?: string | null
+          token_address?: string | null
           token_symbol?: string | null
         }
         Update: {
+          chain_family?: string
           chain_id?: number
           community_name?: string
           created_at?: string
           id?: string
+          message_tag?: string | null
           min_balance?: number
-          token_address?: string
+          policy_id?: string | null
+          token_address?: string | null
           token_symbol?: string | null
         }
         Relationships: []
@@ -268,7 +315,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_wallet_address: { Args: { _addr: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
