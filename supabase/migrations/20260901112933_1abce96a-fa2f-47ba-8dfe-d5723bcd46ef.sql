@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.sync_budget_proposal_votes() FROM PUBLIC, anon, authenticated;
