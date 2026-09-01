@@ -10,10 +10,149 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.15"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
+      budget_proposals: {
+        Row: {
+          budget_round_id: string
+          created_at: string
+          description: string
+          id: string
+          proposer_wallet_address: string
+          requested_amount: number
+          status: string
+          title: string
+          vote_count: number
+        }
+        Insert: {
+          budget_round_id: string
+          created_at?: string
+          description?: string
+          id?: string
+          proposer_wallet_address: string
+          requested_amount?: number
+          status?: string
+          title: string
+          vote_count?: number
+        }
+        Update: {
+          budget_round_id?: string
+          created_at?: string
+          description?: string
+          id?: string
+          proposer_wallet_address?: string
+          requested_amount?: number
+          status?: string
+          title?: string
+          vote_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_proposals_budget_round_id_fkey"
+            columns: ["budget_round_id"]
+            isOneToOne: false
+            referencedRelation: "budget_rounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      budget_rounds: {
+        Row: {
+          community_id: string
+          created_at: string
+          created_by: string
+          currency: string
+          description: string
+          id: string
+          status: string
+          title: string
+          total_budget_amount: number
+          updated_at: string
+          voting_end_date: string
+          voting_start_date: string
+        }
+        Insert: {
+          community_id: string
+          created_at?: string
+          created_by: string
+          currency?: string
+          description?: string
+          id?: string
+          status?: string
+          title: string
+          total_budget_amount?: number
+          updated_at?: string
+          voting_end_date?: string
+          voting_start_date?: string
+        }
+        Update: {
+          community_id?: string
+          created_at?: string
+          created_by?: string
+          currency?: string
+          description?: string
+          id?: string
+          status?: string
+          title?: string
+          total_budget_amount?: number
+          updated_at?: string
+          voting_end_date?: string
+          voting_start_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_rounds_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "councils"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      budget_votes: {
+        Row: {
+          budget_round_id: string
+          created_at: string
+          id: string
+          proposal_id: string
+          voter_wallet_address: string
+          weight: number
+        }
+        Insert: {
+          budget_round_id: string
+          created_at?: string
+          id?: string
+          proposal_id: string
+          voter_wallet_address: string
+          weight?: number
+        }
+        Update: {
+          budget_round_id?: string
+          created_at?: string
+          id?: string
+          proposal_id?: string
+          voter_wallet_address?: string
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_votes_budget_round_id_fkey"
+            columns: ["budget_round_id"]
+            isOneToOne: false
+            referencedRelation: "budget_rounds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_votes_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "budget_proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       council_claims: {
         Row: {
           council_id: string
