@@ -22,6 +22,7 @@ import { Route as SubmitRouteImport } from './routes/submit'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as VisionRouteImport } from './routes/vision'
 import { Route as BudgetRoundsIndexRouteImport } from './routes/budget-rounds.index'
+import { Route as BudgetRoundsRoundIdRouteImport } from './routes/budget-rounds.$roundId'
 import { Route as PetitionsIndexRouteImport } from './routes/petitions.index'
 import { Route as PetitionsPetitionIdRouteImport } from './routes/petitions.$petitionId'
 
@@ -90,6 +91,11 @@ const BudgetRoundsIndexRoute = BudgetRoundsIndexRouteImport.update({
   path: '/budget-rounds/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BudgetRoundsRoundIdRoute = BudgetRoundsRoundIdRouteImport.update({
+  id: '/budget-rounds/$roundId',
+  path: '/budget-rounds/$roundId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PetitionsIndexRoute = PetitionsIndexRouteImport.update({
   id: '/petitions/',
   path: '/petitions/',
@@ -114,6 +120,7 @@ export interface FileRoutesByFullPath {
   '/submit': typeof SubmitRoute
   '/terms': typeof TermsRoute
   '/vision': typeof VisionRoute
+  '/budget-rounds/$roundId': typeof BudgetRoundsRoundIdRoute
   '/petitions/$petitionId': typeof PetitionsPetitionIdRoute
   '/budget-rounds/': typeof BudgetRoundsIndexRoute
   '/petitions/': typeof PetitionsIndexRoute
@@ -131,6 +138,7 @@ export interface FileRoutesByTo {
   '/submit': typeof SubmitRoute
   '/terms': typeof TermsRoute
   '/vision': typeof VisionRoute
+  '/budget-rounds/$roundId': typeof BudgetRoundsRoundIdRoute
   '/petitions/$petitionId': typeof PetitionsPetitionIdRoute
   '/budget-rounds': typeof BudgetRoundsIndexRoute
   '/petitions': typeof PetitionsIndexRoute
@@ -149,6 +157,7 @@ export interface FileRoutesById {
   '/submit': typeof SubmitRoute
   '/terms': typeof TermsRoute
   '/vision': typeof VisionRoute
+  '/budget-rounds/$roundId': typeof BudgetRoundsRoundIdRoute
   '/petitions/$petitionId': typeof PetitionsPetitionIdRoute
   '/budget-rounds/': typeof BudgetRoundsIndexRoute
   '/petitions/': typeof PetitionsIndexRoute
@@ -168,6 +177,7 @@ export interface FileRouteTypes {
     | '/submit'
     | '/terms'
     | '/vision'
+    | '/budget-rounds/$roundId'
     | '/petitions/$petitionId'
     | '/budget-rounds/'
     | '/petitions/'
@@ -185,6 +195,7 @@ export interface FileRouteTypes {
     | '/submit'
     | '/terms'
     | '/vision'
+    | '/budget-rounds/$roundId'
     | '/petitions/$petitionId'
     | '/budget-rounds'
     | '/petitions'
@@ -202,6 +213,7 @@ export interface FileRouteTypes {
     | '/submit'
     | '/terms'
     | '/vision'
+    | '/budget-rounds/$roundId'
     | '/petitions/$petitionId'
     | '/budget-rounds/'
     | '/petitions/'
@@ -220,6 +232,7 @@ export interface RootRouteChildren {
   SubmitRoute: typeof SubmitRoute
   TermsRoute: typeof TermsRoute
   VisionRoute: typeof VisionRoute
+  BudgetRoundsRoundIdRoute: typeof BudgetRoundsRoundIdRoute
   PetitionsPetitionIdRoute: typeof PetitionsPetitionIdRoute
   BudgetRoundsIndexRoute: typeof BudgetRoundsIndexRoute
   PetitionsIndexRoute: typeof PetitionsIndexRoute
@@ -318,6 +331,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BudgetRoundsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/budget-rounds/$roundId': {
+      id: '/budget-rounds/$roundId'
+      path: '/budget-rounds/$roundId'
+      fullPath: '/budget-rounds/$roundId'
+      preLoaderRoute: typeof BudgetRoundsRoundIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/petitions/': {
       id: '/petitions/'
       path: '/petitions'
@@ -348,6 +368,7 @@ const rootRouteChildren: RootRouteChildren = {
   SubmitRoute: SubmitRoute,
   TermsRoute: TermsRoute,
   VisionRoute: VisionRoute,
+  BudgetRoundsRoundIdRoute: BudgetRoundsRoundIdRoute,
   PetitionsPetitionIdRoute: PetitionsPetitionIdRoute,
   BudgetRoundsIndexRoute: BudgetRoundsIndexRoute,
   PetitionsIndexRoute: PetitionsIndexRoute,
