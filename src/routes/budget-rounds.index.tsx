@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { PageHeading } from "@/components/record";
 import { STATUS_BADGE, formatDate, formatNumber } from "@/lib/mishkan-data";
+import type { BudgetRound } from "@/lib/budget";
 import {
   ROUND_STATUS_LABEL,
   ROUND_STATUS_TONE,
@@ -63,9 +64,7 @@ function Section({
   empty,
 }: {
   title: string;
-  rounds: ReturnType<typeof useSuspenseQuery<typeof budgetRoundsQuery>> extends never
-    ? never
-    : import("@/lib/budget").BudgetRound[];
+  rounds: BudgetRound[];
   empty: string;
 }) {
   return (
