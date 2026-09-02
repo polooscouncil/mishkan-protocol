@@ -71,24 +71,30 @@ export function formatAmount(amount: number, currency: string) {
 }
 
 const ROUND_SELECT =
-  "id, title, description, community_id, total_budget_amount, currency, voting_start_date, voting_end_date, status, created_by, created_at, councils(community_name), budget_proposals(id), budget_votes(id)";
+  "id, title, description, community_id, total_budget_amount, currency, voting_start_date, voting_end_date, status, eligibility_mode, created_by, created_at, councils(community_name), budget_proposals(id), budget_votes(id), budget_round_eligibility(id)";
 
-type RoundRow = Omit<BudgetRound, "community_name" | "proposal_count" | "vote_count"> & {
+type RoundRow = Omit<
+  BudgetRound,
+  "community_name" | "proposal_count" | "vote_count" | "eligible_count"
+> & {
   councils?: { community_name: string } | null;
   budget_proposals?: { id: string }[];
   budget_votes?: { id: string }[];
+  budget_round_eligibility?: { id: string }[];
 };
 
 function mapRound(row: RoundRow): BudgetRound {
-  const { councils, budget_proposals, budget_votes, ...rest } = row;
+  const { councils, budget_proposals, budget_votes, budget_round_eligibility, ...rest } = row;
   return {
     ...rest,
     total_budget_amount: Number(rest.total_budget_amount),
     community_name: councils?.community_name ?? null,
     proposal_count: budget_proposals?.length ?? 0,
     vote_count: budget_votes?.length ?? 0,
+    eligible_count: budget_round_eligibility?.length ?? 0,
   };
 }
+
 
 export const budgetRoundsQuery = queryOptions({
   queryKey: ["budget-rounds"],
