@@ -4,6 +4,7 @@ import type { StatusTone } from "@/lib/mishkan-data";
 
 export type BudgetRoundStatus = "draft" | "open" | "closed" | "funds_released";
 export type BudgetProposalStatus = "submitted" | "approved" | "rejected" | "funded";
+export type BudgetEligibilityMode = "open" | "allowlist";
 
 export type BudgetRound = {
   id: string;
@@ -15,12 +16,15 @@ export type BudgetRound = {
   voting_start_date: string;
   voting_end_date: string;
   status: BudgetRoundStatus;
+  eligibility_mode: BudgetEligibilityMode;
   created_by: string;
   created_at: string;
   community_name: string | null;
   proposal_count: number;
   vote_count: number;
+  eligible_count: number;
 };
+
 
 export type BudgetProposal = {
   id: string;
@@ -67,24 +71,30 @@ export function formatAmount(amount: number, currency: string) {
 }
 
 const ROUND_SELECT =
-  "id, title, description, community_id, total_budget_amount, currency, voting_start_date, voting_end_date, status, created_by, created_at, councils(community_name), budget_proposals(id), budget_votes(id)";
+  "id, title, description, community_id, total_budget_amount, currency, voting_start_date, voting_end_date, status, eligibility_mode, created_by, created_at, councils(community_name), budget_proposals(id), budget_votes(id), budget_round_eligibility(id)";
 
-type RoundRow = Omit<BudgetRound, "community_name" | "proposal_count" | "vote_count"> & {
+type RoundRow = Omit<
+  BudgetRound,
+  "community_name" | "proposal_count" | "vote_count" | "eligible_count"
+> & {
   councils?: { community_name: string } | null;
   budget_proposals?: { id: string }[];
   budget_votes?: { id: string }[];
+  budget_round_eligibility?: { id: string }[];
 };
 
 function mapRound(row: RoundRow): BudgetRound {
-  const { councils, budget_proposals, budget_votes, ...rest } = row;
+  const { councils, budget_proposals, budget_votes, budget_round_eligibility, ...rest } = row;
   return {
     ...rest,
     total_budget_amount: Number(rest.total_budget_amount),
     community_name: councils?.community_name ?? null,
     proposal_count: budget_proposals?.length ?? 0,
     vote_count: budget_votes?.length ?? 0,
+    eligible_count: budget_round_eligibility?.length ?? 0,
   };
 }
+
 
 export const budgetRoundsQuery = queryOptions({
   queryKey: ["budget-rounds"],
@@ -182,5 +192,115 @@ export async function castBudgetVote(input: {
 
 export async function setRoundStatus(roundId: string, status: BudgetRoundStatus) {
   const { error } = await supabase.from("budget_rounds").update({ status }).eq("id", roundId);
+  if (error) throw error;
+}
+
+export function budgetEligibilityQuery(roundId: string) {
+  return queryOptions({
+    queryKey: ["budget-eligibility", roundId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("budget_round_eligibility")
+        .select("id, wallet_address, added_by, added_at")
+        .eq("budget_round_id", roundId)
+        .order("added_at", { ascending: true });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+const EVM_ADDRESS = /^0x[0-9a-fA-F]{40}$/;
+
+export function isEvmAddress(value: string) {
+  return EVM_ADDRESS.test(value.trim());
+}
+
+/** Parse a pasted allowlist (one address per line) into unique addresses + per-line errors. */
+export function parseAllowlist(raw: string) {
+  const seen = new Set<string>();
+  const addresses: string[] = [];
+  const errors: { line: number; value: string; reason: string }[] = [];
+
+  raw.split(/\r?\n/).forEach((line, i) => {
+    const value = line.trim();
+    if (!value) return;
+    if (!isEvmAddress(value)) {
+      errors.push({
+        line: i + 1,
+        value,
+        reason: "Not a valid EVM address (expected 0x followed by 40 hex characters).",
+      });
+      return;
+    }
+    const normalized = value.toLowerCase();
+    if (seen.has(normalized)) {
+      errors.push({ line: i + 1, value, reason: "Duplicate address." });
+      return;
+    }
+    seen.add(normalized);
+    addresses.push(normalized);
+  });
+
+  return { addresses, errors };
+}
+
+export async function createBudgetRound(input: {
+  wallet: string;
+  communityId: string;
+  title: string;
+  description: string;
+  totalBudgetAmount: number;
+  currency: string;
+  votingStartDate: string;
+  votingEndDate: string;
+  eligibilityMode: BudgetEligibilityMode;
+  allowlist: string[];
+}) {
+  const { data, error } = await supabase
+    .from("budget_rounds")
+    .insert({
+      community_id: input.communityId,
+      title: input.title.slice(0, 160),
+      description: input.description.slice(0, 2000),
+      total_budget_amount: input.totalBudgetAmount,
+      currency: input.currency,
+      voting_start_date: input.votingStartDate,
+      voting_end_date: input.votingEndDate,
+      status: "open",
+      eligibility_mode: input.eligibilityMode,
+      created_by: input.wallet.toLowerCase(),
+    })
+    .select("id")
+    .single();
+  if (error) throw error;
+
+  if (input.eligibilityMode === "allowlist" && input.allowlist.length > 0) {
+    const { error: eligError } = await supabase.from("budget_round_eligibility").insert(
+      input.allowlist.map((wallet_address) => ({
+        budget_round_id: data.id,
+        wallet_address,
+        added_by: input.wallet.toLowerCase(),
+      })),
+    );
+    if (eligError) throw eligError;
+  }
+
+  return data.id as string;
+}
+
+export async function addEligibleVoters(input: {
+  roundId: string;
+  wallet: string;
+  addresses: string[];
+}) {
+  if (input.addresses.length === 0) return;
+  const { error } = await supabase.from("budget_round_eligibility").insert(
+    input.addresses.map((wallet_address) => ({
+      budget_round_id: input.roundId,
+      wallet_address,
+      added_by: input.wallet.toLowerCase(),
+    })),
+  );
   if (error) throw error;
 }

@@ -1,18 +1,25 @@
+import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { PageHeading } from "@/components/record";
 import { STATUS_BADGE, formatDate, formatNumber } from "@/lib/mishkan-data";
-import type { BudgetRound } from "@/lib/budget";
+import { shortAddress, useWallet } from "@/lib/wallet";
+import { councilsQuery } from "@/lib/db";
+import type { BudgetEligibilityMode, BudgetRound } from "@/lib/budget";
 import {
   ROUND_STATUS_LABEL,
   ROUND_STATUS_TONE,
   budgetRoundsQuery,
+  createBudgetRound,
   formatAmount,
+  parseAllowlist,
 } from "@/lib/budget";
+
 
 export const Route = createFileRoute("/budget-rounds/")({
   loader: ({ context }) => {
     context.queryClient.ensureQueryData(budgetRoundsQuery);
+    context.queryClient.ensureQueryData(councilsQuery);
   },
   head: () => ({
     meta: [
@@ -51,6 +58,9 @@ function BudgetRoundsPage() {
         title="Budget Rounds"
         lede="Each round sets aside a discretionary pool. Members submit funding proposals, every wallet endorses one proposal per round, and allocations are settled on the public record."
       />
+
+      <NewRoundForm />
+
 
       <Section title="Active rounds" rounds={active} empty="No round is currently open." />
       <Section title="Past rounds" rounds={past} empty="No round has closed yet." />

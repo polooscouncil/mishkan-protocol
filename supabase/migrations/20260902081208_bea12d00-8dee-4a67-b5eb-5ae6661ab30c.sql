@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.is_budget_voter_eligible(uuid, text) FROM PUBLIC, anon, authenticated;

@@ -58,6 +58,38 @@ export type Database = {
           },
         ]
       }
+      budget_round_eligibility: {
+        Row: {
+          added_at: string
+          added_by: string
+          budget_round_id: string
+          id: string
+          wallet_address: string
+        }
+        Insert: {
+          added_at?: string
+          added_by: string
+          budget_round_id: string
+          id?: string
+          wallet_address: string
+        }
+        Update: {
+          added_at?: string
+          added_by?: string
+          budget_round_id?: string
+          id?: string
+          wallet_address?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_round_eligibility_budget_round_id_fkey"
+            columns: ["budget_round_id"]
+            isOneToOne: false
+            referencedRelation: "budget_rounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       budget_rounds: {
         Row: {
           community_id: string
@@ -65,6 +97,7 @@ export type Database = {
           created_by: string
           currency: string
           description: string
+          eligibility_mode: string
           id: string
           status: string
           title: string
@@ -79,6 +112,7 @@ export type Database = {
           created_by: string
           currency?: string
           description?: string
+          eligibility_mode?: string
           id?: string
           status?: string
           title: string
@@ -93,6 +127,7 @@ export type Database = {
           created_by?: string
           currency?: string
           description?: string
+          eligibility_mode?: string
           id?: string
           status?: string
           title?: string
@@ -454,6 +489,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      is_budget_voter_eligible: {
+        Args: { _round_id: string; _wallet: string }
+        Returns: boolean
+      }
       is_wallet_address: { Args: { _addr: string }; Returns: boolean }
     }
     Enums: {
