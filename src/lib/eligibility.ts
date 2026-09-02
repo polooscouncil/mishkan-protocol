@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import type { Council } from "@/lib/db";
+import { councilAssetId } from "@/lib/membership";
 import { useWallet } from "@/lib/wallet";
 
 export type Eligibility =
