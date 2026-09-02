@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import type { Council } from "@/lib/db";
+import { councilAssetId } from "@/lib/membership";
 import { useWallet } from "@/lib/wallet";
 
 export type Eligibility =
@@ -27,7 +28,9 @@ export function useEligibility(council: Council | null | undefined): Eligibility
     staleTime: 30_000,
     queryFn: async () => {
       const adapter = wallet.adapter!;
-      const balance = await adapter.getBalance(council!.token_address, address!);
+      const assetId = councilAssetId(council);
+      if (!assetId) throw new Error("This council has no governance token configured.");
+      const balance = await adapter.getBalance(assetId, address!);
       return { balance, eligible: balance >= min };
     },
   });
