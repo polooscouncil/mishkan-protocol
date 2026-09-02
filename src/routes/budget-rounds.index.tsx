@@ -19,6 +19,7 @@ import {
 export const Route = createFileRoute("/budget-rounds/")({
   loader: ({ context }) => {
     context.queryClient.ensureQueryData(budgetRoundsQuery);
+    context.queryClient.ensureQueryData(councilsQuery);
   },
   head: () => ({
     meta: [
