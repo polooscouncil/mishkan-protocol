@@ -4,6 +4,7 @@ import type { StatusTone } from "@/lib/mishkan-data";
 
 export type BudgetRoundStatus = "draft" | "open" | "closed" | "funds_released";
 export type BudgetProposalStatus = "submitted" | "approved" | "rejected" | "funded";
+export type BudgetEligibilityMode = "open" | "allowlist";
 
 export type BudgetRound = {
   id: string;
@@ -15,12 +16,15 @@ export type BudgetRound = {
   voting_start_date: string;
   voting_end_date: string;
   status: BudgetRoundStatus;
+  eligibility_mode: BudgetEligibilityMode;
   created_by: string;
   created_at: string;
   community_name: string | null;
   proposal_count: number;
   vote_count: number;
+  eligible_count: number;
 };
+
 
 export type BudgetProposal = {
   id: string;
