@@ -58,6 +58,9 @@ function BudgetRoundsPage() {
         lede="Each round sets aside a discretionary pool. Members submit funding proposals, every wallet endorses one proposal per round, and allocations are settled on the public record."
       />
 
+      <NewRoundForm />
+
+
       <Section title="Active rounds" rounds={active} empty="No round is currently open." />
       <Section title="Past rounds" rounds={past} empty="No round has closed yet." />
     </div>
