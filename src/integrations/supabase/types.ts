@@ -21,6 +21,7 @@ export type Database = {
           description: string
           id: string
           proposer_wallet_address: string
+          release_tx_hash: string | null
           requested_amount: number
           status: string
           title: string
@@ -32,6 +33,7 @@ export type Database = {
           description?: string
           id?: string
           proposer_wallet_address: string
+          release_tx_hash?: string | null
           requested_amount?: number
           status?: string
           title: string
@@ -43,6 +45,7 @@ export type Database = {
           description?: string
           id?: string
           proposer_wallet_address?: string
+          release_tx_hash?: string | null
           requested_amount?: number
           status?: string
           title?: string
@@ -102,6 +105,9 @@ export type Database = {
           status: string
           title: string
           total_budget_amount: number
+          treasury_address: string | null
+          treasury_chain_id: number | null
+          treasury_tx_hash: string | null
           updated_at: string
           voting_end_date: string
           voting_start_date: string
@@ -117,6 +123,9 @@ export type Database = {
           status?: string
           title: string
           total_budget_amount?: number
+          treasury_address?: string | null
+          treasury_chain_id?: number | null
+          treasury_tx_hash?: string | null
           updated_at?: string
           voting_end_date?: string
           voting_start_date?: string
@@ -132,6 +141,9 @@ export type Database = {
           status?: string
           title?: string
           total_budget_amount?: number
+          treasury_address?: string | null
+          treasury_chain_id?: number | null
+          treasury_tx_hash?: string | null
           updated_at?: string
           voting_end_date?: string
           voting_start_date?: string
