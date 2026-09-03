@@ -68,6 +68,251 @@ function BudgetRoundsPage() {
   );
 }
 
+function todayPlus(days: number) {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+function NewRoundForm() {
+  const qc = useQueryClient();
+  const { address } = useWallet();
+  const wallet = address?.toLowerCase() ?? null;
+  const { data: councils } = useSuspenseQuery(councilsQuery);
+
+  const [open, setOpen] = useState(false);
+  const [communityId, setCommunityId] = useState("");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [amount, setAmount] = useState("");
+  const [currency, setCurrency] = useState("USD");
+  const [startDate, setStartDate] = useState(todayPlus(0));
+  const [endDate, setEndDate] = useState(todayPlus(14));
+  const [mode, setMode] = useState<BudgetEligibilityMode>("open");
+  const [allowlistRaw, setAllowlistRaw] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  const parsed = useMemo(() => parseAllowlist(allowlistRaw), [allowlistRaw]);
+  const selectedCouncil = communityId || councils[0]?.id || "";
+
+  const create = useMutation({
+    mutationFn: () =>
+      createBudgetRound({
+        wallet: wallet!,
+        communityId: selectedCouncil,
+        title,
+        description,
+        totalBudgetAmount: Number(amount || 0),
+        currency: currency.trim().toUpperCase() || "USD",
+        votingStartDate: new Date(startDate).toISOString(),
+        votingEndDate: new Date(endDate).toISOString(),
+        eligibilityMode: mode,
+        allowlist: parsed.addresses,
+      }),
+    onSuccess: () => {
+      setTitle("");
+      setDescription("");
+      setAmount("");
+      setAllowlistRaw("");
+      setMode("open");
+      setOpen(false);
+      void qc.invalidateQueries({ queryKey: ["budget-rounds"] });
+    },
+    onError: (e: Error) => setError(e.message),
+  });
+
+  const allowlistBlocked = mode === "allowlist" && parsed.addresses.length === 0;
+
+  return (
+    <section className="mt-12 border border-rule bg-card p-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 className="label-caps text-muted-foreground">Open a new round</h2>
+          <p className="mt-2 font-mono text-[11px] text-muted-foreground">
+            {wallet
+              ? `Acting as ${shortAddress(wallet)}`
+              : "Connect your wallet in the header to open a round."}
+          </p>
+        </div>
+        <button
+          type="button"
+          disabled={!wallet}
+          onClick={() => {
+            setError(null);
+            setOpen((s) => !s);
+          }}
+          className="border border-foreground bg-foreground px-3.5 py-1.5 font-mono text-xs uppercase tracking-[0.14em] text-background transition-opacity hover:opacity-85 disabled:opacity-40"
+        >
+          {open ? "Cancel" : "New round"}
+        </button>
+      </div>
+
+      {open && wallet ? (
+        <form
+          className="mt-6 space-y-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            setError(null);
+            if (allowlistBlocked) {
+              setError("Add at least one valid address to the allowlist, or choose open voting.");
+              return;
+            }
+            create.mutate();
+          }}
+        >
+          <FormField label="Council">
+            <select
+              required
+              value={selectedCouncil}
+              onChange={(e) => setCommunityId(e.target.value)}
+              className="w-full border border-rule bg-background px-3 py-2 text-sm"
+            >
+              {councils.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.community_name}
+                </option>
+              ))}
+            </select>
+          </FormField>
+
+          <FormField label="Title">
+            <input
+              required
+              maxLength={160}
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full border border-rule bg-background px-3 py-2 text-sm"
+            />
+          </FormField>
+
+          <FormField label="Description">
+            <textarea
+              required
+              rows={4}
+              maxLength={2000}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="w-full border border-rule bg-background px-3 py-2 text-sm"
+            />
+          </FormField>
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <FormField label="Total budget">
+              <input
+                required
+                type="number"
+                min={0}
+                step="1"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                className="w-full border border-rule bg-background px-3 py-2 font-mono text-sm"
+              />
+            </FormField>
+            <FormField label="Currency">
+              <input
+                required
+                maxLength={8}
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value)}
+                className="w-full border border-rule bg-background px-3 py-2 font-mono text-sm uppercase"
+              />
+            </FormField>
+            <FormField label="Voting opens">
+              <input
+                required
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full border border-rule bg-background px-3 py-2 font-mono text-sm"
+              />
+            </FormField>
+            <FormField label="Voting closes">
+              <input
+                required
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-full border border-rule bg-background px-3 py-2 font-mono text-sm"
+              />
+            </FormField>
+          </div>
+
+          <fieldset>
+            <legend className="label-caps text-muted-foreground">Who may vote</legend>
+            <div className="mt-3 flex flex-col gap-2">
+              {(
+                [
+                  ["open", "Open to all community members"],
+                  ["allowlist", "Restricted to a specific list"],
+                ] as [BudgetEligibilityMode, string][]
+              ).map(([value, label]) => (
+                <label key={value} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="radio"
+                    name="eligibility-mode"
+                    value={value}
+                    checked={mode === value}
+                    onChange={() => setMode(value)}
+                  />
+                  <span>{label}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+
+          {mode === "allowlist" ? (
+            <FormField label="Allowlisted wallets (one address per line)">
+              <textarea
+                rows={6}
+                value={allowlistRaw}
+                onChange={(e) => setAllowlistRaw(e.target.value)}
+                placeholder={"0x…\n0x…"}
+                className="w-full border border-rule bg-background px-3 py-2 font-mono text-xs"
+              />
+              <span className="mt-2 block font-mono text-[11px] text-muted-foreground">
+                {formatNumber(parsed.addresses.length)} valid address
+                {parsed.addresses.length === 1 ? "" : "es"}
+              </span>
+              {parsed.errors.length > 0 ? (
+                <ul className="mt-2 space-y-1">
+                  {parsed.errors.map((err) => (
+                    <li
+                      key={`${err.line}-${err.value}`}
+                      className="font-mono text-[11px] text-destructive"
+                    >
+                      Line {err.line}: {err.reason}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </FormField>
+          ) : null}
+
+          {error ? <p className="text-sm text-destructive">{error}</p> : null}
+
+          <button
+            type="submit"
+            disabled={create.isPending}
+            className="border border-foreground px-3.5 py-1.5 font-mono text-xs uppercase tracking-[0.14em] transition-colors hover:bg-foreground hover:text-background disabled:opacity-50"
+          >
+            {create.isPending ? "Opening…" : "Open round"}
+          </button>
+        </form>
+      ) : null}
+    </section>
+  );
+}
+
+function FormField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="label-caps text-muted-foreground">{label}</span>
+      <span className="mt-2 block">{children}</span>
+    </label>
+  );
+}
+
+
 function Section({
   title,
   rounds,
