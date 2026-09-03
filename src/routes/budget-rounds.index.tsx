@@ -370,7 +370,7 @@ function Section({
                         : "Open to all members"}
                     </span>
                   </p>
-                  </p>
+
                 </div>
 
                 <div className="md:pt-1">
