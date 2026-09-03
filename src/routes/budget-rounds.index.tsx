@@ -363,6 +363,14 @@ function Section({
                     <span aria-hidden>·</span>
                     <span>{formatNumber(r.vote_count)} endorsements</span>
                   </p>
+                  <p className="mt-3">
+                    <span className="label-caps rounded-full border border-rule px-2 py-0.5 text-muted-foreground">
+                      {r.eligibility_mode === "allowlist"
+                        ? `${formatNumber(r.eligible_count)} eligible voters`
+                        : "Open to all members"}
+                    </span>
+                  </p>
+                  </p>
                 </div>
 
                 <div className="md:pt-1">
