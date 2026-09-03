@@ -8,6 +8,7 @@ import {
   PROPOSAL_STATUS_TONE,
   ROUND_STATUS_LABEL,
   ROUND_STATUS_TONE,
+  budgetEligibilityQuery,
   budgetProposalsQuery,
   budgetRoundQuery,
   budgetVotesQuery,
@@ -58,6 +59,7 @@ function RoundDetail() {
   const { data: round } = useSuspenseQuery(budgetRoundQuery(roundId));
   const { data: proposals } = useSuspenseQuery(budgetProposalsQuery(roundId));
   const { data: votes } = useSuspenseQuery(budgetVotesQuery(roundId));
+  const { data: eligibility } = useSuspenseQuery(budgetEligibilityQuery(roundId));
 
   const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState("");
@@ -114,6 +116,10 @@ function RoundDetail() {
 
   const myVote = wallet ? votes.find((v) => v.voter_wallet_address.toLowerCase() === wallet) : null;
   const votingOpen = round.status === "open";
+  const allowlistRound = round.eligibility_mode === "allowlist";
+  const isEligible =
+    !allowlistRound ||
+    (wallet ? eligibility.some((e) => e.wallet_address.toLowerCase() === wallet) : false);
   const totalRequested = proposals.reduce((sum, p) => sum + p.requested_amount, 0);
   const totalEndorsements = proposals.reduce((sum, p) => sum + p.vote_count, 0);
 
@@ -274,6 +280,11 @@ function RoundDetail() {
                       <span className="text-foreground">{formatNumber(p.vote_count)}</span>{" "}
                       endorsements
                     </p>
+                    {wallet && !isEligible ? (
+                      <p className="mt-4 font-mono text-[11px] leading-relaxed text-muted-foreground">
+                        You are not eligible to vote in this round.
+                      </p>
+                    ) : (
                     <button
                       type="button"
                       onClick={() => {
@@ -294,6 +305,7 @@ function RoundDetail() {
                     >
                       {voted ? "Your endorsement" : "Endorse"}
                     </button>
+                    )}
                   </div>
                 </article>
               );
