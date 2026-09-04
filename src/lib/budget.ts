@@ -17,6 +17,9 @@ export type BudgetRound = {
   voting_end_date: string;
   status: BudgetRoundStatus;
   eligibility_mode: BudgetEligibilityMode;
+  treasury_chain_id: number | null;
+  treasury_address: string | null;
+  treasury_tx_hash: string | null;
   created_by: string;
   created_at: string;
   community_name: string | null;
@@ -36,6 +39,7 @@ export type BudgetProposal = {
   vote_count: number;
   status: BudgetProposalStatus;
   created_at: string;
+  release_tx_hash: string | null;
 };
 
 export const ROUND_STATUS_LABEL: Record<BudgetRoundStatus, string> = {
@@ -71,7 +75,7 @@ export function formatAmount(amount: number, currency: string) {
 }
 
 const ROUND_SELECT =
-  "id, title, description, community_id, total_budget_amount, currency, voting_start_date, voting_end_date, status, eligibility_mode, created_by, created_at, councils(community_name), budget_proposals(id), budget_votes(id), budget_round_eligibility(id)";
+  "id, title, description, community_id, total_budget_amount, currency, voting_start_date, voting_end_date, status, eligibility_mode, treasury_chain_id, treasury_address, treasury_tx_hash, created_by, created_at, councils(community_name), budget_proposals(id), budget_votes(id), budget_round_eligibility(id)";
 
 type RoundRow = Omit<
   BudgetRound,
@@ -130,7 +134,7 @@ export function budgetProposalsQuery(roundId: string) {
       const { data, error } = await supabase
         .from("budget_proposals")
         .select(
-          "id, budget_round_id, title, description, requested_amount, proposer_wallet_address, vote_count, status, created_at",
+          "id, budget_round_id, title, description, requested_amount, proposer_wallet_address, vote_count, status, created_at, release_tx_hash",
         )
         .eq("budget_round_id", roundId)
         .order("vote_count", { ascending: false })
@@ -192,6 +196,34 @@ export async function castBudgetVote(input: {
 
 export async function setRoundStatus(roundId: string, status: BudgetRoundStatus) {
   const { error } = await supabase.from("budget_rounds").update({ status }).eq("id", roundId);
+  if (error) throw error;
+}
+
+/** Persist the on-chain treasury record after createRoundTreasury confirms. */
+export async function recordRoundTreasury(input: {
+  roundId: string;
+  chainId: number;
+  address: string;
+  txHash: string;
+}) {
+  const { error } = await supabase
+    .from("budget_rounds")
+    .update({
+      treasury_chain_id: input.chainId,
+      treasury_address: input.address,
+      treasury_tx_hash: input.txHash,
+      status: "open",
+    })
+    .eq("id", input.roundId);
+  if (error) throw error;
+}
+
+/** Mark a proposal funded — only valid with a confirmed on-chain tx hash. */
+export async function markProposalFunded(input: { proposalId: string; txHash: string }) {
+  const { error } = await supabase
+    .from("budget_proposals")
+    .update({ status: "funded", release_tx_hash: input.txHash })
+    .eq("id", input.proposalId);
   if (error) throw error;
 }
 
