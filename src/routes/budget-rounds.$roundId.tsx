@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { STATUS_BADGE, formatDate, formatNumber } from "@/lib/mishkan-data";
@@ -16,8 +16,20 @@ import {
   formatAmount,
   setRoundStatus,
   submitBudgetProposal,
-  type BudgetRoundStatus,
+  markProposalFunded,
+  recordRoundTreasury,
 } from "@/lib/budget";
+import { useQuery } from "@tanstack/react-query";
+import {
+  DEFAULT_TREASURY_CHAIN_ID,
+  createRoundTreasury,
+  hasTreasuryDeployment,
+  isTreasuryAdmin,
+  recordWinningProposal,
+  releaseFunds,
+  treasuryChainLabel,
+  watchFundsReleased,
+} from "@/lib/chains/treasury";
 
 export const Route = createFileRoute("/budget-rounds/$roundId")({
   head: () => ({
@@ -100,8 +112,68 @@ function RoundDetail() {
     onError: (e: Error) => setError(e.message),
   });
 
-  const statusMut = useMutation({
-    mutationFn: (status: BudgetRoundStatus) => setRoundStatus(roundId, status),
+  const treasuryChainId = round?.treasury_chain_id ?? DEFAULT_TREASURY_CHAIN_ID;
+
+  const { data: isAdmin = false } = useQuery({
+    queryKey: ["treasury-admin", roundId, treasuryChainId, wallet],
+    enabled: Boolean(wallet) && hasTreasuryDeployment(treasuryChainId),
+    queryFn: () => isTreasuryAdmin({ chainId: treasuryChainId, roundId, account: wallet! }),
+  });
+
+  // Persist "funded" only when the on-chain FundsReleased event is observed.
+  useEffect(() => {
+    if (!hasTreasuryDeployment(treasuryChainId)) return;
+    return watchFundsReleased({
+      chainId: treasuryChainId,
+      roundId,
+      onLogs: () => invalidate(),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roundId, treasuryChainId]);
+
+  const openRound = useMutation({
+    mutationFn: async () => {
+      if (!round || !wallet) throw new Error("Connect a wallet to open this round.");
+      const { hash, address: contract } = await createRoundTreasury({
+        chainId: treasuryChainId,
+        roundId,
+        totalAmount: round.total_budget_amount,
+        admins: [wallet],
+        votingEnd: round.voting_end_date,
+      });
+      await recordRoundTreasury({
+        roundId,
+        chainId: treasuryChainId,
+        address: contract,
+        txHash: hash,
+      });
+    },
+    onSuccess: invalidate,
+    onError: (e: Error) => setError(e.message),
+  });
+
+  const release = useMutation({
+    mutationFn: async () => {
+      if (!round) throw new Error("Round unavailable.");
+      const winner = proposals[0];
+      if (!winner) throw new Error("No winning proposal to fund.");
+      await recordWinningProposal({
+        chainId: treasuryChainId,
+        roundId,
+        proposalId: winner.id,
+        votes: winner.vote_count,
+      });
+      const { hash } = await releaseFunds({
+        chainId: treasuryChainId,
+        roundId,
+        proposalId: winner.id,
+        recipient: winner.proposer_wallet_address,
+        amount: winner.requested_amount,
+      });
+      // Only now, with a confirmed FundsReleased transaction, record funding.
+      await markProposalFunded({ proposalId: winner.id, txHash: hash });
+      await setRoundStatus(roundId, "funds_released");
+    },
     onSuccess: invalidate,
     onError: (e: Error) => setError(e.message),
   });
@@ -314,30 +386,29 @@ function RoundDetail() {
         </div>
       </section>
 
-      <section className="mt-14 border border-rule bg-card p-6">
-        <h2 className="label-caps text-muted-foreground">Treasury controls</h2>
-        <p className="mt-3 text-sm text-muted-foreground">
-          Placeholder for the Phase 2c fund-release trigger. No funds move on-chain; the status
-          below is a manual record kept by the treasury committee.
-        </p>
-        <div className="mt-5 flex flex-wrap gap-2">
-          {(["draft", "open", "closed", "funds_released"] as BudgetRoundStatus[]).map((s) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => statusMut.mutate(s)}
-              disabled={statusMut.isPending || round.status === s}
-              className={`border px-3 py-1.5 font-mono text-xs uppercase tracking-[0.12em] transition-colors disabled:opacity-50 ${
-                round.status === s
-                  ? "border-foreground bg-foreground text-background"
-                  : "border-rule hover:bg-muted"
-              }`}
-            >
-              {ROUND_STATUS_LABEL[s]}
-            </button>
-          ))}
-        </div>
-      </section>
+      <TreasuryPanel
+        networkLabel={treasuryChainLabel(treasuryChainId)}
+        deployed={hasTreasuryDeployment(treasuryChainId)}
+        status={round.status}
+        treasuryAddress={round.treasury_address}
+        treasuryTxHash={round.treasury_tx_hash}
+        isAdmin={isAdmin}
+        votingEnded={new Date(round.voting_end_date).getTime() <= Date.now()}
+        votingEndDate={round.voting_end_date}
+        winner={proposals[0] ?? null}
+        currency={round.currency}
+        canOpen={Boolean(wallet) && round.status === "draft"}
+        opening={openRound.isPending}
+        onOpen={() => {
+          setError(null);
+          openRound.mutate();
+        }}
+        releasing={release.isPending}
+        onRelease={() => {
+          setError(null);
+          release.mutate();
+        }}
+      />
     </div>
   );
 }
@@ -357,5 +428,128 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <span className="label-caps text-muted-foreground">{label}</span>
       <span className="mt-2 block">{children}</span>
     </label>
+  );
+}
+
+function TreasuryPanel({
+  networkLabel,
+  deployed,
+  status,
+  treasuryAddress,
+  treasuryTxHash,
+  isAdmin,
+  votingEnded,
+  votingEndDate,
+  winner,
+  currency,
+  canOpen,
+  opening,
+  onOpen,
+  releasing,
+  onRelease,
+}: {
+  networkLabel: string;
+  deployed: boolean;
+  status: string;
+  treasuryAddress: string | null;
+  treasuryTxHash: string | null;
+  isAdmin: boolean;
+  votingEnded: boolean;
+  votingEndDate: string;
+  winner: { id: string; title: string; requested_amount: number; release_tx_hash: string | null } | null;
+  currency: string;
+  canOpen: boolean;
+  opening: boolean;
+  onOpen: () => void;
+  releasing: boolean;
+  onRelease: () => void;
+}) {
+  return (
+    <section className="mt-14 border border-rule bg-card p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="label-caps text-muted-foreground">On-chain treasury</h2>
+        <span className="label-caps rounded-full border border-rule px-2 py-0.5 text-muted-foreground">
+          {networkLabel}
+        </span>
+      </div>
+
+      {!deployed ? (
+        <p className="mt-3 text-sm text-muted-foreground">
+          No BudgetTreasury contract is configured for {networkLabel} yet. Deploy
+          <span className="font-mono"> contracts/evm/BudgetTreasury.sol</span> and set the treasury
+          address to enable on-chain fund release.
+        </p>
+      ) : (
+        <p className="mt-3 text-sm text-muted-foreground">
+          Funds are escrowed in a BudgetTreasury contract on {networkLabel}. Release is executed by
+          the round&apos;s on-chain admins (a Gnosis Safe) and only after voting closes on{" "}
+          {formatDate(votingEndDate)}.
+        </p>
+      )}
+
+      {treasuryAddress ? (
+        <dl className="mt-5 space-y-2 font-mono text-[11px] text-muted-foreground">
+          <div>
+            <dt className="inline">treasury </dt>
+            <dd className="inline text-foreground">{treasuryAddress}</dd>
+          </div>
+          {treasuryTxHash ? (
+            <div>
+              <dt className="inline">created in tx </dt>
+              <dd className="inline text-foreground">{treasuryTxHash}</dd>
+            </div>
+          ) : null}
+          {winner?.release_tx_hash ? (
+            <div>
+              <dt className="inline">released in tx </dt>
+              <dd className="inline text-foreground">{winner.release_tx_hash}</dd>
+            </div>
+          ) : null}
+        </dl>
+      ) : null}
+
+      <div className="mt-6 flex flex-wrap gap-2">
+        {status === "draft" ? (
+          <button
+            type="button"
+            onClick={onOpen}
+            disabled={!deployed || !canOpen || opening}
+            title={canOpen ? undefined : "Connect a wallet to open this round"}
+            className="border border-foreground bg-foreground px-3.5 py-1.5 font-mono text-xs uppercase tracking-[0.14em] text-background transition-opacity hover:opacity-85 disabled:opacity-40"
+          >
+            {opening ? "Creating treasury…" : "Open round & create treasury"}
+          </button>
+        ) : null}
+
+        {isAdmin && status !== "funds_released" ? (
+          <button
+            type="button"
+            onClick={onRelease}
+            disabled={!deployed || !votingEnded || !winner || releasing}
+            title={
+              !votingEnded
+                ? `Release unlocks after ${formatDate(votingEndDate)}`
+                : !winner
+                  ? "No winning proposal yet"
+                  : undefined
+            }
+            className="border border-foreground px-3.5 py-1.5 font-mono text-xs uppercase tracking-[0.14em] transition-colors hover:bg-foreground hover:text-background disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {releasing ? "Releasing…" : "Release funds"}
+          </button>
+        ) : null}
+      </div>
+
+      {winner ? (
+        <p className="mt-4 font-mono text-[11px] text-muted-foreground">
+          winning proposal · {winner.title} · {formatAmount(winner.requested_amount, currency)}
+        </p>
+      ) : null}
+      {!isAdmin && status !== "draft" ? (
+        <p className="mt-4 font-mono text-[11px] text-muted-foreground">
+          Fund release is restricted to the round&apos;s on-chain admins.
+        </p>
+      ) : null}
+    </section>
   );
 }
