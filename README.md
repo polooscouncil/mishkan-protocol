@@ -33,6 +33,40 @@ and proposals, verified by token balance, decided one holder, one vote.
 | **Archive** | Permanent, append-only record of resolved items |
 | **Petitions** | Routed proposals with a tracked resolution status |
 | **Feed** | General community discussion, separate from formal docket items |
+| **Budget Rounds** | Participatory budgeting: proposals, one-endorsement-per-wallet voting, on-chain release — see below |
+
+## Budget Rounds — Participatory Budgeting on Mishkan Protocol
+
+**The problem.** Municipalities, NGOs, and community funds increasingly run
+participatory budgeting, but the process is usually a black box: proposals
+live in spreadsheets, votes are unauditable, and whether the winning project
+was ever paid out is a matter of trust. Grant reviewers and residents have no
+way to independently verify that the process was legitimate.
+
+**How it works.** Each round sets aside a discretionary pool for one
+community.
+
+1. **Propose** — any member submits a funding proposal with a requested amount.
+2. **Vote** — every eligible wallet endorses one proposal per round (one
+   holder, one vote; rounds can be open to all members or restricted to an
+   allowlist).
+3. **Release** — after voting closes, funds go to the winning proposal through
+   an on-chain treasury contract (`contracts/evm/BudgetTreasury.sol`), with
+   admin control delegated to an audited Gnosis Safe multisig. A proposal is
+   marked funded only when the on-chain `FundsReleased` event confirms — not
+   by a database flag.
+
+**Chain support.** BNB Chain (testnet) is live today. Base, Arbitrum,
+Polygon, Optimism, and Celo are config-ready through the same EVM adapter.
+Stellar and Cardano support is planned (each requires a dedicated adapter).
+
+**Live demo.** The public transparency dashboard — every round's budget,
+participation, and released funds, readable without a wallet — is at
+https://mishkanprotocol2.lovable.app/budget-rounds/transparency
+
+Budget Rounds is part of Mishkan Protocol and is covered by the same MIT
+license and public-good commitments stated in this file — no separate
+licensing applies.
 
 ## Supported chains
 

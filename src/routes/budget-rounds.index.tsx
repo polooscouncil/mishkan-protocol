@@ -58,6 +58,7 @@ function BudgetRoundsPage() {
         title="Budget Rounds"
         lede="Each round sets aside a discretionary pool. Members submit funding proposals, every wallet endorses one proposal per round, and allocations are settled on the public record."
       />
+      <HowItWorks />
       <p className="mt-4">
         <Link
           to="/budget-rounds/transparency"
