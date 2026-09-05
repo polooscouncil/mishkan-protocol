@@ -23,6 +23,7 @@ import { Route as TermsRouteImport } from './routes/terms'
 import { Route as VisionRouteImport } from './routes/vision'
 import { Route as BudgetRoundsIndexRouteImport } from './routes/budget-rounds.index'
 import { Route as BudgetRoundsRoundIdRouteImport } from './routes/budget-rounds.$roundId'
+import { Route as BudgetRoundsTransparencyRouteImport } from './routes/budget-rounds.transparency'
 import { Route as PetitionsIndexRouteImport } from './routes/petitions.index'
 import { Route as PetitionsPetitionIdRouteImport } from './routes/petitions.$petitionId'
 
@@ -96,6 +97,12 @@ const BudgetRoundsRoundIdRoute = BudgetRoundsRoundIdRouteImport.update({
   path: '/budget-rounds/$roundId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BudgetRoundsTransparencyRoute =
+  BudgetRoundsTransparencyRouteImport.update({
+    id: '/budget-rounds/transparency',
+    path: '/budget-rounds/transparency',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const PetitionsIndexRoute = PetitionsIndexRouteImport.update({
   id: '/petitions/',
   path: '/petitions/',
@@ -121,6 +128,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/vision': typeof VisionRoute
   '/budget-rounds/$roundId': typeof BudgetRoundsRoundIdRoute
+  '/budget-rounds/transparency': typeof BudgetRoundsTransparencyRoute
   '/petitions/$petitionId': typeof PetitionsPetitionIdRoute
   '/budget-rounds/': typeof BudgetRoundsIndexRoute
   '/petitions/': typeof PetitionsIndexRoute
@@ -139,6 +147,7 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/vision': typeof VisionRoute
   '/budget-rounds/$roundId': typeof BudgetRoundsRoundIdRoute
+  '/budget-rounds/transparency': typeof BudgetRoundsTransparencyRoute
   '/petitions/$petitionId': typeof PetitionsPetitionIdRoute
   '/budget-rounds': typeof BudgetRoundsIndexRoute
   '/petitions': typeof PetitionsIndexRoute
@@ -158,6 +167,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/vision': typeof VisionRoute
   '/budget-rounds/$roundId': typeof BudgetRoundsRoundIdRoute
+  '/budget-rounds/transparency': typeof BudgetRoundsTransparencyRoute
   '/petitions/$petitionId': typeof PetitionsPetitionIdRoute
   '/budget-rounds/': typeof BudgetRoundsIndexRoute
   '/petitions/': typeof PetitionsIndexRoute
@@ -178,6 +188,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/vision'
     | '/budget-rounds/$roundId'
+    | '/budget-rounds/transparency'
     | '/petitions/$petitionId'
     | '/budget-rounds/'
     | '/petitions/'
@@ -196,6 +207,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/vision'
     | '/budget-rounds/$roundId'
+    | '/budget-rounds/transparency'
     | '/petitions/$petitionId'
     | '/budget-rounds'
     | '/petitions'
@@ -214,6 +226,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/vision'
     | '/budget-rounds/$roundId'
+    | '/budget-rounds/transparency'
     | '/petitions/$petitionId'
     | '/budget-rounds/'
     | '/petitions/'
@@ -233,6 +246,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   VisionRoute: typeof VisionRoute
   BudgetRoundsRoundIdRoute: typeof BudgetRoundsRoundIdRoute
+  BudgetRoundsTransparencyRoute: typeof BudgetRoundsTransparencyRoute
   PetitionsPetitionIdRoute: typeof PetitionsPetitionIdRoute
   BudgetRoundsIndexRoute: typeof BudgetRoundsIndexRoute
   PetitionsIndexRoute: typeof PetitionsIndexRoute
@@ -338,6 +352,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BudgetRoundsRoundIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/budget-rounds/transparency': {
+      id: '/budget-rounds/transparency'
+      path: '/budget-rounds/transparency'
+      fullPath: '/budget-rounds/transparency'
+      preLoaderRoute: typeof BudgetRoundsTransparencyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/petitions/': {
       id: '/petitions/'
       path: '/petitions'
@@ -369,6 +390,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   VisionRoute: VisionRoute,
   BudgetRoundsRoundIdRoute: BudgetRoundsRoundIdRoute,
+  BudgetRoundsTransparencyRoute: BudgetRoundsTransparencyRoute,
   PetitionsPetitionIdRoute: PetitionsPetitionIdRoute,
   BudgetRoundsIndexRoute: BudgetRoundsIndexRoute,
   PetitionsIndexRoute: PetitionsIndexRoute,

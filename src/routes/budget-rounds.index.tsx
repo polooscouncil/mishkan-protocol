@@ -58,6 +58,14 @@ function BudgetRoundsPage() {
         title="Budget Rounds"
         lede="Each round sets aside a discretionary pool. Members submit funding proposals, every wallet endorses one proposal per round, and allocations are settled on the public record."
       />
+      <p className="mt-4">
+        <Link
+          to="/budget-rounds/transparency"
+          className="font-mono text-xs uppercase tracking-[0.14em] text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+        >
+          View the public transparency ledger →
+        </Link>
+      </p>
 
       <NewRoundForm />
 
