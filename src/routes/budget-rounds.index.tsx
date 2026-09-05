@@ -58,6 +58,7 @@ function BudgetRoundsPage() {
         title="Budget Rounds"
         lede="Each round sets aside a discretionary pool. Members submit funding proposals, every wallet endorses one proposal per round, and allocations are settled on the public record."
       />
+      <HowItWorks />
       <p className="mt-4">
         <Link
           to="/budget-rounds/transparency"
@@ -73,6 +74,53 @@ function BudgetRoundsPage() {
       <Section title="Active rounds" rounds={active} empty="No round is currently open." />
       <Section title="Past rounds" rounds={past} empty="No round has closed yet." />
     </div>
+  );
+}
+
+const HOW_IT_WORKS = [
+  {
+    step: "01",
+    title: "Propose",
+    body: "Any member submits a funding proposal with a requested amount from the round's pool.",
+  },
+  {
+    step: "02",
+    title: "Endorse",
+    body: "Every eligible wallet endorses one proposal per round — one holder, one vote.",
+  },
+  {
+    step: "03",
+    title: "Release",
+    body: "When voting closes, the winning proposal is paid through an on-chain treasury confirmed by a public event.",
+  },
+  {
+    step: "04",
+    title: "Verify",
+    body: "Anyone can audit the full record — no wallet needed — on the Transparency ledger.",
+  },
+] as const;
+
+function HowItWorks() {
+  return (
+    <section className="mt-12 border border-rule">
+      <h2 className="label-caps border-b border-rule bg-card px-6 py-4 text-muted-foreground">
+        How budget rounds work
+      </h2>
+      <ol className="grid grid-cols-1 gap-px bg-rule sm:grid-cols-2 lg:grid-cols-4">
+        {HOW_IT_WORKS.map((s) => (
+          <li key={s.step} className="bg-background px-6 py-6">
+            <span
+              aria-hidden
+              className="flex size-9 items-center justify-center border border-foreground font-serif text-sm"
+            >
+              {s.step}
+            </span>
+            <h3 className="mt-4 font-serif text-lg tracking-tight">{s.title}</h3>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{s.body}</p>
+          </li>
+        ))}
+      </ol>
+    </section>
   );
 }
 
