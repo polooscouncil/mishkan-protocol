@@ -28,6 +28,7 @@ import {
   recordWinningProposal,
   releaseFunds,
   treasuryChainLabel,
+  explorerTxUrl,
   watchFundsReleased,
 } from "@/lib/chains/treasury";
 
@@ -387,6 +388,7 @@ function RoundDetail() {
       </section>
 
       <TreasuryPanel
+        chainId={treasuryChainId}
         networkLabel={treasuryChainLabel(treasuryChainId)}
         deployed={hasTreasuryDeployment(treasuryChainId)}
         status={round.status}
@@ -431,7 +433,18 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
+function TxLink({ chainId, hash }: { chainId: number; hash: string }) {
+  const url = explorerTxUrl(chainId, hash);
+  if (!url) return <>{hash}</>;
+  return (
+    <a href={url} target="_blank" rel="noreferrer" className="underline underline-offset-4">
+      {hash}
+    </a>
+  );
+}
+
 function TreasuryPanel({
+  chainId,
   networkLabel,
   deployed,
   status,
@@ -448,6 +461,7 @@ function TreasuryPanel({
   releasing,
   onRelease,
 }: {
+  chainId: number;
   networkLabel: string;
   deployed: boolean;
   status: string;
