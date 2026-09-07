@@ -496,17 +496,22 @@ function TreasuryPanel({
           {treasuryTxHash ? (
             <div>
               <dt className="inline">created in tx </dt>
-              <dd className="inline text-foreground">{treasuryTxHash}</dd>
+              <dd className="inline text-foreground">
+                <TxLink chainId={chainId} hash={treasuryTxHash} />
+              </dd>
             </div>
           ) : null}
           {winner?.release_tx_hash ? (
             <div>
               <dt className="inline">released in tx </dt>
-              <dd className="inline text-foreground">{winner.release_tx_hash}</dd>
+              <dd className="inline text-foreground">
+                <TxLink chainId={chainId} hash={winner.release_tx_hash} />
+              </dd>
             </div>
           ) : null}
         </dl>
       ) : null}
+
 
       <div className="mt-6 flex flex-wrap gap-2">
         {status === "draft" ? (
