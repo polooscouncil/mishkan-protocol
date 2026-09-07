@@ -8,14 +8,16 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
 
 /**
  * @title BudgetTreasury
- * @notice Escrows a budget round's funds and releases them to the winning
- *         proposal after voting closes.
+ * @notice Escrows a budget round's USDC allocation and releases it to the
+ *         winning proposal after voting closes.
  *
- * Admin control is intentionally NOT hand-rolled multisig logic: each round
+ * Admin control is intentionally NOT hand-rolled multisig logic. Each round
  * records an admin list, and the expected production configuration is a single
- * audited Gnosis Safe (2-of-3 or better) address in that list. Every
- * privileged call therefore requires an `msg.sender` that the Safe executes
- * from, and quorum is enforced by the Safe itself.
+ * audited Gnosis Safe (2-of-3 or better) address in that list: quorum is
+ * enforced by the Safe, and every privileged call must originate from it.
+ *
+ * Round and proposal identifiers are the application's string ids
+ * (e.g. "BR-1A2B" / a proposal UUID); they are hashed internally for storage.
  */
 contract BudgetTreasury is ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -23,28 +25,27 @@ contract BudgetTreasury is ReentrancyGuard {
 
     struct Round {
         bool exists;
+        IERC20 token;
         uint256 totalAmount;
         uint256 released;
         uint64 votingEnd;
-        uint256 winningProposalId;
+        bytes32 winningProposal;
         uint256 winningVotes;
+        bool fundsReleased;
     }
 
-    /// @notice ERC20 the treasury pays out in.
-    IERC20 public immutable fundingToken;
+    mapping(bytes32 => Round) private _rounds;
+    mapping(bytes32 => EnumerableSet.AddressSet) private _admins;
 
-    mapping(uint256 => Round) private _rounds;
-    mapping(uint256 => EnumerableSet.AddressSet) private _admins;
-
-    event RoundTreasuryCreated(uint256 indexed roundId, uint256 totalAmount, address[] admins);
-    event VotingEndRecorded(uint256 indexed roundId, uint64 votingEnd);
-    event WinningProposalRecorded(uint256 indexed roundId, uint256 proposalId, uint256 votes);
+    event RoundTreasuryCreated(string roundId, uint256 totalAmount, address token, address[] admins);
+    event VotingEndRecorded(string roundId, uint64 votingEnd);
+    event WinningProposalRecorded(string roundId, string proposalId, uint256 votes);
     event FundsReleased(
-        uint256 indexed roundId,
-        uint256 indexed proposalId,
-        address indexed recipient,
+        string roundId,
+        string proposalId,
+        address recipient,
         uint256 amount,
-        uint256 votes
+        uint256 timestamp
     );
 
     error RoundExists();
@@ -55,107 +56,141 @@ contract BudgetTreasury is ReentrancyGuard {
     error NotWinningProposal();
     error AmountExceedsBudget();
     error InvalidRecipient();
+    error AlreadyReleased();
 
-    constructor(IERC20 token) {
-        if (address(token) == address(0)) revert InvalidRecipient();
-        fundingToken = token;
+    function key(string memory id) public pure returns (bytes32) {
+        return keccak256(bytes(id));
     }
 
-    modifier onlyRoundAdmin(uint256 roundId) {
-        if (!_rounds[roundId].exists) revert RoundUnknown();
-        if (!_admins[roundId].contains(msg.sender)) revert NotRoundAdmin();
+    modifier onlyRoundAdmin(string memory roundId) {
+        bytes32 k = key(roundId);
+        if (!_rounds[k].exists) revert RoundUnknown();
+        if (!_admins[k].contains(msg.sender)) revert NotRoundAdmin();
         _;
     }
 
     /**
-     * @notice Register a round's treasury budget and its admin list.
-     * @param roundId Off-chain budget round identifier.
-     * @param totalAmount Maximum releasable amount for this round.
+     * @notice Register a round treasury and lock its USDC allocation.
+     * @dev The caller must have approved `totalAmount` of `usdcTokenAddress`
+     *      to this contract first; the funds are pulled into a balance scoped
+     *      to `roundId`.
      * @param admins Addresses allowed to administer the round — use a Gnosis
      *        Safe address so quorum is enforced by the audited Safe.
      */
-    function createRoundTreasury(uint256 roundId, uint256 totalAmount, address[] memory admins)
-        external
-    {
-        if (_rounds[roundId].exists) revert RoundExists();
+    function createRoundTreasury(
+        string memory roundId,
+        uint256 totalAmount,
+        address usdcTokenAddress,
+        address[] memory admins
+    ) external nonReentrant {
+        bytes32 k = key(roundId);
+        if (_rounds[k].exists) revert RoundExists();
         if (admins.length == 0) revert NoAdmins();
+        if (usdcTokenAddress == address(0)) revert InvalidRecipient();
 
-        _rounds[roundId] = Round({
+        _rounds[k] = Round({
             exists: true,
+            token: IERC20(usdcTokenAddress),
             totalAmount: totalAmount,
             released: 0,
             votingEnd: 0,
-            winningProposalId: 0,
-            winningVotes: 0
+            winningProposal: bytes32(0),
+            winningVotes: 0,
+            fundsReleased: false
         });
 
         for (uint256 i = 0; i < admins.length; i++) {
             if (admins[i] == address(0)) revert InvalidRecipient();
-            _admins[roundId].add(admins[i]);
+            _admins[k].add(admins[i]);
         }
 
-        emit RoundTreasuryCreated(roundId, totalAmount, admins);
+        if (totalAmount > 0) {
+            IERC20(usdcTokenAddress).safeTransferFrom(msg.sender, address(this), totalAmount);
+        }
+
+        emit RoundTreasuryCreated(roundId, totalAmount, usdcTokenAddress, admins);
     }
 
     /// @notice Record when voting closes; releases are blocked before this.
-    function recordVotingEnd(uint256 roundId, uint64 votingEnd) external onlyRoundAdmin(roundId) {
-        _rounds[roundId].votingEnd = votingEnd;
-        emit VotingEndRecorded(roundId, votingEnd);
-    }
-
-    /// @notice Record the winning proposal and its vote count.
-    function recordWinningProposal(uint256 roundId, uint256 proposalId, uint256 votes)
+    function recordVotingEnd(string memory roundId, uint64 votingEnd)
         external
         onlyRoundAdmin(roundId)
     {
-        _rounds[roundId].winningProposalId = proposalId;
-        _rounds[roundId].winningVotes = votes;
+        _rounds[key(roundId)].votingEnd = votingEnd;
+        emit VotingEndRecorded(roundId, votingEnd);
+    }
+
+    /// @notice Record the winning proposal and its endorsement count.
+    function recordWinningProposal(string memory roundId, string memory proposalId, uint256 votes)
+        external
+        onlyRoundAdmin(roundId)
+    {
+        Round storage round = _rounds[key(roundId)];
+        if (round.fundsReleased) revert AlreadyReleased();
+        round.winningProposal = key(proposalId);
+        round.winningVotes = votes;
         emit WinningProposalRecorded(roundId, proposalId, votes);
     }
 
     /**
-     * @notice Release funds to the winning proposal's recipient.
-     * @dev Gated on: voting ended, caller is a round admin (Safe), and the
-     *      proposal is the recorded winner.
+     * @notice Release the round's escrowed USDC to the winning proposal.
+     * @dev Gated on: caller is a round admin (Safe), voting has ended, the
+     *      proposal is the recorded winner, and no prior release happened.
      */
-    function releaseFunds(uint256 roundId, uint256 proposalId, address recipient, uint256 amount)
-        external
-        nonReentrant
-        onlyRoundAdmin(roundId)
-    {
-        Round storage round = _rounds[roundId];
+    function releaseFunds(
+        string memory roundId,
+        string memory proposalId,
+        address recipient,
+        uint256 amount
+    ) external nonReentrant onlyRoundAdmin(roundId) {
+        Round storage round = _rounds[key(roundId)];
+        if (round.fundsReleased) revert AlreadyReleased();
         if (round.votingEnd == 0 || block.timestamp < round.votingEnd) revert ReleaseTooEarly();
-        if (proposalId == 0 || proposalId != round.winningProposalId) revert NotWinningProposal();
+        if (round.winningProposal == bytes32(0) || key(proposalId) != round.winningProposal) {
+            revert NotWinningProposal();
+        }
         if (recipient == address(0)) revert InvalidRecipient();
         if (round.released + amount > round.totalAmount) revert AmountExceedsBudget();
 
         round.released += amount;
-        fundingToken.safeTransfer(recipient, amount);
+        round.fundsReleased = true;
+        round.token.safeTransfer(recipient, amount);
 
-        emit FundsReleased(roundId, proposalId, recipient, amount, round.winningVotes);
+        emit FundsReleased(roundId, proposalId, recipient, amount, block.timestamp);
     }
 
-    function roundInfo(uint256 roundId)
+    function roundInfo(string memory roundId)
         external
         view
         returns (
             bool exists,
+            address token,
             uint256 totalAmount,
             uint256 released,
             uint64 votingEnd,
-            uint256 winningProposalId,
-            uint256 winningVotes
+            bytes32 winningProposal,
+            uint256 winningVotes,
+            bool fundsReleased
         )
     {
-        Round storage r = _rounds[roundId];
-        return (r.exists, r.totalAmount, r.released, r.votingEnd, r.winningProposalId, r.winningVotes);
+        Round storage r = _rounds[key(roundId)];
+        return (
+            r.exists,
+            address(r.token),
+            r.totalAmount,
+            r.released,
+            r.votingEnd,
+            r.winningProposal,
+            r.winningVotes,
+            r.fundsReleased
+        );
     }
 
-    function isRoundAdmin(uint256 roundId, address account) external view returns (bool) {
-        return _admins[roundId].contains(account);
+    function isRoundAdmin(string memory roundId, address account) external view returns (bool) {
+        return _admins[key(roundId)].contains(account);
     }
 
-    function roundAdmins(uint256 roundId) external view returns (address[] memory) {
-        return _admins[roundId].values();
+    function roundAdmins(string memory roundId) external view returns (address[] memory) {
+        return _admins[key(roundId)].values();
     }
 }

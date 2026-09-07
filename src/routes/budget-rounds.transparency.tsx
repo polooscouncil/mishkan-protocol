@@ -7,6 +7,7 @@ import { PageHeading } from "@/components/record";
 import { STATUS_BADGE, formatDate, formatNumber } from "@/lib/mishkan-data";
 import { chainNameById } from "@/lib/db";
 import { ChainChipById } from "@/components/chain-chip";
+import { explorerTxUrl } from "@/lib/chains/treasury";
 import {
   ROUND_STATUS_LABEL,
   ROUND_STATUS_TONE,
@@ -58,9 +59,28 @@ const transparencyStatsQuery = queryOptions({
   },
 });
 
+type ReleaseRecord = { roundId: string; txHash: string | null; amount: number };
+
+const releasesQuery = queryOptions({
+  queryKey: ["budget-releases"],
+  queryFn: async (): Promise<ReleaseRecord[]> => {
+    const { data, error } = await supabase
+      .from("budget_proposals")
+      .select("budget_round_id, release_tx_hash, requested_amount")
+      .eq("status", "funded");
+    if (error) throw error;
+    return (data ?? []).map((r) => ({
+      roundId: r.budget_round_id as string,
+      txHash: (r.release_tx_hash as string | null) ?? null,
+      amount: Number(r.requested_amount ?? 0),
+    }));
+  },
+});
+
 export const Route = createFileRoute("/budget-rounds/transparency")({
   loader: ({ context }) => {
     context.queryClient.ensureQueryData(budgetRoundsQuery);
+    context.queryClient.ensureQueryData(releasesQuery);
     context.queryClient.ensureQueryData(transparencyStatsQuery);
   },
   head: () => ({
@@ -101,6 +121,7 @@ const STATUS_FILTERS: { value: "all" | BudgetRoundStatus; label: string }[] = [
 function TransparencyPage() {
   const { data: rounds } = useSuspenseQuery(budgetRoundsQuery);
   const { data: stats } = useSuspenseQuery(transparencyStatsQuery);
+  const { data: releases } = useSuspenseQuery(releasesQuery);
 
   const [community, setCommunity] = useState("all");
   const [status, setStatus] = useState<"all" | BudgetRoundStatus>("all");
@@ -137,7 +158,10 @@ function TransparencyPage() {
         <Stat label="Budget rounds run" value={formatNumber(stats.totalRounds)} />
         <Stat
           label="Total disbursed"
-          value={formatAmount(stats.totalDisbursed, stats.disbursedCurrency)}
+          value={formatAmount(
+            releases.reduce((sum, r) => sum + r.amount, 0) || stats.totalDisbursed,
+            stats.disbursedCurrency,
+          )}
         />
         <Stat label="Unique voters" value={formatNumber(stats.uniqueVoters)} />
       </section>
@@ -198,7 +222,11 @@ function TransparencyPage() {
               </tr>
             ) : (
               filtered.map((r) => {
-                const released = r.status === "funds_released";
+                const roundReleases = releases.filter((x) => x.roundId === r.id);
+                const released = r.status === "funds_released" || roundReleases.length > 0;
+                const releaseTx = roundReleases.find((x) => x.txHash)?.txHash ?? null;
+                const txUrl = releaseTx ? explorerTxUrl(r.treasury_chain_id, releaseTx) : null;
+                const pilotPending = r.treasury_chain_id != null && !r.treasury_address;
                 return (
                   <tr key={r.id} className="border-b border-rule transition-colors hover:bg-card">
                     <td className="px-4 py-3">
@@ -235,6 +263,22 @@ function TransparencyPage() {
                           <span className="block font-mono text-[11px] text-muted-foreground">
                             {formatDate(r.voting_end_date)}
                           </span>
+                          {releaseTx ? (
+                            txUrl ? (
+                              <a
+                                href={txUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="mt-1 block font-mono text-[11px] underline underline-offset-4"
+                              >
+                                {releaseTx.slice(0, 10)}…{releaseTx.slice(-6)}
+                              </a>
+                            ) : (
+                              <span className="mt-1 block font-mono text-[11px] text-muted-foreground">
+                                {releaseTx.slice(0, 10)}…
+                              </span>
+                            )
+                          ) : null}
                         </span>
                       ) : (
                         <span className="text-muted-foreground">No</span>
@@ -242,10 +286,17 @@ function TransparencyPage() {
                     </td>
                     <td className="px-4 py-3">
                       {r.treasury_chain_id != null ? (
-                        <ChainChipById
-                          chainId={r.treasury_chain_id}
-                          label={chainNameById(r.treasury_chain_id)}
-                        />
+                        <>
+                          <ChainChipById
+                            chainId={r.treasury_chain_id}
+                            label={chainNameById(r.treasury_chain_id)}
+                          />
+                          {pilotPending ? (
+                            <span className="mt-1 block font-mono text-[11px] text-muted-foreground">
+                              Pilot pending network setup
+                            </span>
+                          ) : null}
+                        </>
                       ) : (
                         <span className="text-muted-foreground">Off-chain</span>
                       )}

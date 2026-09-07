@@ -2,7 +2,6 @@
 pragma solidity ^0.8.24;
 
 import {Script} from "forge-std/Script.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {BudgetTreasury} from "../BudgetTreasury.sol";
 
 /**
@@ -12,13 +11,13 @@ import {BudgetTreasury} from "../BudgetTreasury.sol";
  *     --rpc-url bsc_testnet --broadcast \
  *     --private-key $DEPLOYER_PRIVATE_KEY
  *
- * Env: FUNDING_TOKEN (ERC20 paid out by the treasury).
+ * The USDC token address is supplied per round at createRoundTreasury time,
+ * so the deployment itself takes no constructor arguments.
  */
 contract DeployBudgetTreasury is Script {
     function run() external returns (BudgetTreasury treasury) {
-        IERC20 token = IERC20(vm.envAddress("FUNDING_TOKEN"));
         vm.startBroadcast();
-        treasury = new BudgetTreasury(token);
+        treasury = new BudgetTreasury();
         vm.stopBroadcast();
     }
 }
