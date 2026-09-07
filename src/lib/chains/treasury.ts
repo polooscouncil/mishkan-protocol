@@ -4,7 +4,7 @@ import {
   waitForTransactionReceipt,
   watchContractEvent,
 } from "@wagmi/core";
-import { getAddress, parseUnits, type Address, type Log } from "viem";
+import { erc20Abi, getAddress, parseUnits, type Address, type Log } from "viem";
 import { bscTestnet } from "viem/chains";
 import { wagmiConfig } from "./evm";
 
@@ -15,8 +15,9 @@ export const budgetTreasuryAbi = [
     name: "createRoundTreasury",
     stateMutability: "nonpayable",
     inputs: [
-      { name: "roundId", type: "uint256" },
+      { name: "roundId", type: "string" },
       { name: "totalAmount", type: "uint256" },
+      { name: "usdcTokenAddress", type: "address" },
       { name: "admins", type: "address[]" },
     ],
     outputs: [],
@@ -26,7 +27,7 @@ export const budgetTreasuryAbi = [
     name: "recordVotingEnd",
     stateMutability: "nonpayable",
     inputs: [
-      { name: "roundId", type: "uint256" },
+      { name: "roundId", type: "string" },
       { name: "votingEnd", type: "uint64" },
     ],
     outputs: [],
@@ -36,8 +37,8 @@ export const budgetTreasuryAbi = [
     name: "recordWinningProposal",
     stateMutability: "nonpayable",
     inputs: [
-      { name: "roundId", type: "uint256" },
-      { name: "proposalId", type: "uint256" },
+      { name: "roundId", type: "string" },
+      { name: "proposalId", type: "string" },
       { name: "votes", type: "uint256" },
     ],
     outputs: [],
@@ -47,8 +48,8 @@ export const budgetTreasuryAbi = [
     name: "releaseFunds",
     stateMutability: "nonpayable",
     inputs: [
-      { name: "roundId", type: "uint256" },
-      { name: "proposalId", type: "uint256" },
+      { name: "roundId", type: "string" },
+      { name: "proposalId", type: "string" },
       { name: "recipient", type: "address" },
       { name: "amount", type: "uint256" },
     ],
@@ -59,7 +60,7 @@ export const budgetTreasuryAbi = [
     name: "isRoundAdmin",
     stateMutability: "view",
     inputs: [
-      { name: "roundId", type: "uint256" },
+      { name: "roundId", type: "string" },
       { name: "account", type: "address" },
     ],
     outputs: [{ name: "", type: "bool" }],
@@ -68,25 +69,27 @@ export const budgetTreasuryAbi = [
     type: "function",
     name: "roundInfo",
     stateMutability: "view",
-    inputs: [{ name: "roundId", type: "uint256" }],
+    inputs: [{ name: "roundId", type: "string" }],
     outputs: [
       { name: "exists", type: "bool" },
+      { name: "token", type: "address" },
       { name: "totalAmount", type: "uint256" },
       { name: "released", type: "uint256" },
       { name: "votingEnd", type: "uint64" },
-      { name: "winningProposalId", type: "uint256" },
+      { name: "winningProposal", type: "bytes32" },
       { name: "winningVotes", type: "uint256" },
+      { name: "fundsReleased", type: "bool" },
     ],
   },
   {
     type: "event",
     name: "FundsReleased",
     inputs: [
-      { name: "roundId", type: "uint256", indexed: true },
-      { name: "proposalId", type: "uint256", indexed: true },
-      { name: "recipient", type: "address", indexed: true },
+      { name: "roundId", type: "string", indexed: false },
+      { name: "proposalId", type: "string", indexed: false },
+      { name: "recipient", type: "address", indexed: false },
       { name: "amount", type: "uint256", indexed: false },
-      { name: "votes", type: "uint256", indexed: false },
+      { name: "timestamp", type: "uint256", indexed: false },
     ],
   },
 ] as const;
@@ -99,13 +102,19 @@ export const TREASURY_CHAINS: {
   chainId: number;
   label: string;
   address: Address | null;
+  usdcAddress: Address | null;
   tokenDecimals: number;
+  explorerTxUrl: (hash: string) => string;
 }[] = [
   {
     chainId: bscTestnet.id,
     label: "BNB Chain Testnet",
     address: (import.meta.env['VITE_BUDGET_TREASURY_97'] as Address | undefined) ?? null,
+    usdcAddress:
+      (import.meta.env['VITE_USDC_97'] as Address | undefined) ??
+      ("0x64544969ed7EBf5f083679233325356EbE738930" as Address),
     tokenDecimals: 18,
+    explorerTxUrl: (hash) => `https://testnet.bscscan.com/tx/${hash}`,
   },
 ];
 
@@ -119,9 +128,14 @@ export function treasuryChainLabel(chainId: number | null | undefined) {
   return treasuryConfig(chainId)?.label ?? `Chain ${chainId ?? "?"}`;
 }
 
-/** Deterministic uint256 round id derived from the off-chain UUID. */
-export function onChainId(uuid: string): bigint {
-  return BigInt(`0x${uuid.replace(/-/g, "")}`) >> 128n;
+/** Explorer link for a transaction hash (BscScan testnet for chain 97). */
+export function explorerTxUrl(chainId: number | null | undefined, hash: string) {
+  return treasuryConfig(chainId)?.explorerTxUrl(hash) ?? null;
+}
+
+/** Public round identifier used both in the UI and on-chain: BR-XXXX. */
+export function roundRef(uuid: string) {
+  return `BR-${uuid.slice(0, 4).toUpperCase()}`;
 }
 
 function requireContract(chainId: number) {
@@ -151,7 +165,7 @@ export async function isTreasuryAdmin(input: {
       address: getAddress(cfg.address),
       abi: budgetTreasuryAbi,
       functionName: "isRoundAdmin",
-      args: [onChainId(input.roundId), getAddress(input.account)],
+      args: [roundRef(input.roundId), getAddress(input.account)],
     })) as boolean;
   } catch {
     return false;
@@ -165,19 +179,24 @@ export async function readRoundTreasury(input: { chainId: number; roundId: strin
     address: cfg.address,
     abi: budgetTreasuryAbi,
     functionName: "roundInfo",
-    args: [onChainId(input.roundId)],
-  })) as readonly [boolean, bigint, bigint, bigint, bigint, bigint];
+    args: [roundRef(input.roundId)],
+  })) as readonly [boolean, Address, bigint, bigint, bigint, `0x${string}`, bigint, boolean];
   return {
     exists: result[0],
-    totalAmount: result[1],
-    released: result[2],
-    votingEnd: Number(result[3]),
-    winningProposalId: result[4],
-    winningVotes: result[5],
+    token: result[1],
+    totalAmount: result[2],
+    released: result[3],
+    votingEnd: Number(result[4]),
+    winningProposal: result[5],
+    winningVotes: result[6],
+    fundsReleased: result[7],
   };
 }
 
-/** Register the round treasury on-chain (draft → open). */
+/**
+ * Register the round treasury on-chain and lock the round's USDC allocation
+ * (draft → open). Approves the treasury for the budget amount first.
+ */
 export async function createRoundTreasury(input: {
   chainId: number;
   roundId: string;
@@ -186,16 +205,31 @@ export async function createRoundTreasury(input: {
   votingEnd: string;
 }) {
   const cfg = requireContract(input.chainId);
+  if (!cfg.usdcAddress) throw new Error(`No USDC token configured for ${cfg.label}.`);
+  const ref = roundRef(input.roundId);
+  const amount = parseUnits(String(input.totalAmount), cfg.tokenDecimals);
+  const usdc = getAddress(cfg.usdcAddress);
+
+  if (amount > 0n) {
+    const approveHash = await writeContract(wagmiConfig, {
+      chainId: input.chainId as 97,
+      address: usdc,
+      abi: erc20Abi,
+      functionName: "approve",
+      args: [cfg.address, amount],
+    });
+    await waitForTransactionReceipt(wagmiConfig, {
+      chainId: input.chainId as 97,
+      hash: approveHash,
+    });
+  }
+
   const hash = await writeContract(wagmiConfig, {
     chainId: input.chainId as 97,
     address: cfg.address,
     abi: budgetTreasuryAbi,
     functionName: "createRoundTreasury",
-    args: [
-      onChainId(input.roundId),
-      parseUnits(String(input.totalAmount), cfg.tokenDecimals),
-      input.admins.map((a) => getAddress(a)),
-    ],
+    args: [ref, amount, usdc, input.admins.map((a) => getAddress(a))],
   });
   await waitForTransactionReceipt(wagmiConfig, { chainId: input.chainId as 97, hash });
 
@@ -205,7 +239,7 @@ export async function createRoundTreasury(input: {
     address: cfg.address,
     abi: budgetTreasuryAbi,
     functionName: "recordVotingEnd",
-    args: [onChainId(input.roundId), votingEndTs],
+    args: [ref, votingEndTs],
   });
   await waitForTransactionReceipt(wagmiConfig, { chainId: input.chainId as 97, hash: endHash });
 
@@ -224,7 +258,7 @@ export async function recordWinningProposal(input: {
     address: cfg.address,
     abi: budgetTreasuryAbi,
     functionName: "recordWinningProposal",
-    args: [onChainId(input.roundId), onChainId(input.proposalId), BigInt(input.votes)],
+    args: [roundRef(input.roundId), input.proposalId, BigInt(input.votes)],
   });
   await waitForTransactionReceipt(wagmiConfig, { chainId: input.chainId as 97, hash });
   return hash;
@@ -249,8 +283,8 @@ export async function releaseFunds(input: {
     abi: budgetTreasuryAbi,
     functionName: "releaseFunds",
     args: [
-      onChainId(input.roundId),
-      onChainId(input.proposalId),
+      roundRef(input.roundId),
+      input.proposalId,
       getAddress(input.recipient),
       parseUnits(String(input.amount), cfg.tokenDecimals),
     ],
@@ -271,12 +305,17 @@ export function watchFundsReleased(input: {
 }) {
   const cfg = treasuryConfig(input.chainId);
   if (!cfg?.address) return () => {};
+  const ref = roundRef(input.roundId);
   return watchContractEvent(wagmiConfig, {
     chainId: input.chainId as 97,
     address: getAddress(cfg.address),
     abi: budgetTreasuryAbi,
     eventName: "FundsReleased",
-    args: { roundId: onChainId(input.roundId) },
-    onLogs: (logs) => input.onLogs(logs as unknown as Log[]),
+    onLogs: (logs) => {
+      const mine = (logs as unknown as { args?: { roundId?: string } }[]).filter(
+        (l) => l.args?.roundId === ref,
+      );
+      if (mine.length > 0) input.onLogs(mine as unknown as Log[]);
+    },
   });
 }
